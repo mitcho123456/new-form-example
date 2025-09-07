@@ -17,29 +17,35 @@ function cssEscape(id) { return (window.CSS && CSS.escape) ? CSS.escape(id) : St
 function normalizeKey(s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
 
 function getSmartLabel(el) {
-  if (el?.dataset?.label && hasText(el.dataset.label)) return el.dataset.label.trim();
+  if (el.dataset && el.dataset.label && hasText(el.dataset.label)) return el.dataset.label.trim();
+
+  // label[for]
   if (el.id) {
     const lab = document.querySelector(`label[for="${cssEscape(el.id)}"]`);
     if (lab && hasText(lab.textContent)) return lab.textContent.trim();
   }
-  const fg = el.closest?.('.form-group');
+  // nearest form-group > label
+  const fg = el.closest('.form-group');
   if (fg) {
     const lab = fg.querySelector('label');
     if (lab && hasText(lab.textContent)) return lab.textContent.trim();
   }
+  // aria-label / placeholder
   if (el.getAttribute && hasText(el.getAttribute('aria-label'))) return el.getAttribute('aria-label').trim();
   if (el.placeholder && hasText(el.placeholder)) return el.placeholder.trim();
+  // fallbacks
   if (el.id) return el.id;
   if (el.name) return el.name;
   return 'Field';
 }
 
 function getSmartValue(el) {
-  const tag = el.tagName?.toLowerCase?.();
+  const tag = el.tagName.toLowerCase();
   if (tag === 'textarea') return el.value || '';
   if (tag === 'input') {
     const type = (el.type || '').toLowerCase();
     if (['text','number','date','time','email','tel','url'].includes(type)) return el.value || '';
+    // radios handled via group function; ignore here
     return '';
   }
   if (tag === 'select') {
@@ -50,12 +56,13 @@ function getSmartValue(el) {
     const opt = el.selectedOptions && el.selectedOptions[0];
     return opt ? opt.textContent.trim() : (el.value || '');
   }
-  if (el.isContentEditable) return el.textContent || '';
+  if (el.isContentEditable) {
+    return el.textContent || '';
+  }
   return '';
 }
 
 function formatCheckboxText(column, checked) {
-  // Existing formatter for column sentences (kept for non-history negatives and positives)
   let text = '';
   for (let i = 0; i < checked.length; i++) {
     text += checked[i];
@@ -82,41 +89,6 @@ function formatCheckboxText(column, checked) {
   return text;
 }
 
-// ---- helpers for clean negatives / sections ----
-function joinNatural(items, conj = 'and') {
-  const arr = items.filter(Boolean);
-  if (arr.length === 0) return '';
-  if (arr.length === 1) return arr[0];
-  if (arr.length === 2) return `${arr[0]} ${conj} ${arr[1]}`;
-  return `${arr.slice(0, -1).join(', ')}, ${conj} ${arr[arr.length - 1]}`;
-}
-
-function sectionKey(id) {
-  switch (String(id)) {
-    case '1': return 's1';
-    case '2': return 's2';
-    case '3': return 'red';
-    case '4': return 'com';
-    case '5': return 'add';
-    case '6': return 'rep';
-    case '7': return 'his';
-    case 'mixed': return 'mixed';
-    default: return 'other';
-  }
-}
-
-function sectionHeaders(key) {
-  // Must match GROUP_HEADERS used to build the mirror
-  switch (key) {
-    case 'red': return { col1: 'Reports',               col2: 'Reports' };
-    case 'com': return { col1: 'Complaining of',        col2: 'Has' };
-    case 'add': return { col1: 'Reports',               col2: 'Reports' };
-    case 'rep': return { col1: 'Reports',               col2: 'Reports' };
-    case 'his': return { col1: 'Has a history of',      col2: 'Has no history of' };
-    default:    return null;
-  }
-}
-
 // ================
 // OUTPUT PIPELINE
 // ================
@@ -127,7 +99,7 @@ async function generateOutput() {
   const modal = document.getElementById('outputModal');
   const modalText = document.getElementById('outputText');
 
-  let chunks = []; // [sectionTitle, lines[]]
+  let chunks = []; // array of [sectionTitle, lines[]]
 
   // Group by card title (or data-group)
   const cards = document.querySelectorAll('.card');
@@ -137,7 +109,7 @@ async function generateOutput() {
       || 'Section';
     const lines = [];
 
-    // Harvest free-text-like controls
+    // Collect all candidate controls inside card content
     const controls = card.querySelectorAll(`
       textarea,
       input[type="text"],
@@ -151,14 +123,15 @@ async function generateOutput() {
       [contenteditable][data-field]
     `);
 
-    // Radio groups inside this card
+    // Radio groups inside this card: collect by name
     const radios = card.querySelectorAll('input[type="radio"]:not([data-skip="true"])');
     const radioNames = new Set(Array.from(radios).map(r => r.name).filter(Boolean));
     radioNames.forEach(name => {
       const checked = card.querySelector(`input[type="radio"][name="${cssEscape(name)}"]:checked`);
       if (checked) {
         const labelEl = card.querySelector(`label[for="${cssEscape(checked.id)}"]`);
-        const valueLabel = (labelEl && labelEl.textContent.trim()) || (checked.value || 'Yes');
+        const valueLabel = labelEl && hasText(labelEl.textContent) ? labelEl.textContent.trim() : (checked.value || 'Yes');
+        // Representative element to derive field label
         const representative = card.querySelector(`input[type="radio"][name="${cssEscape(name)}"]`);
         const fieldLabel = getSmartLabel(representative);
         if (hasText(valueLabel)) lines.push(`${fieldLabel} - ${valueLabel}`);
@@ -169,10 +142,11 @@ async function generateOutput() {
     const seen = new Set();
     controls.forEach(ctrl => {
       if (ctrl.closest('#legacy-mirror')) return;
-      if (ctrl.dataset?.skip === 'true') return;
-      if (ctrl.type && ctrl.type.toLowerCase() === 'checkbox') return; // handled via legacy mirror
-      if (ctrl.matches && ctrl.matches('input[type="radio"]')) return; // handled above
+      if (ctrl.dataset && ctrl.dataset.skip === 'true') return;
+      if (ctrl.type && ctrl.type.toLowerCase() === 'checkbox') return; // handled separately via legacy mirror
+      if (ctrl.matches('input[type="radio"]')) return; // already handled via group
 
+      // avoid duplicates
       const key = ctrl.id || ctrl.name || ctrl;
       if (seen.has(key)) return;
       seen.add(key);
@@ -181,17 +155,22 @@ async function generateOutput() {
       if (!hasText(val)) return;
 
       const fieldLabel = getSmartLabel(ctrl);
-      if (ctrl.tagName?.toLowerCase?.() === 'textarea' || ctrl.isContentEditable) {
+      // Style decisions: for big narratives (textareas/contenteditable) make sentences
+      if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
         lines.push(capitalizeAndAddFullStop(val.trim()));
       } else {
         lines.push(`${fieldLabel} - ${val.trim()}`);
       }
     });
 
-    if (lines.length) chunks.push([sectionTitle, lines]);
+    // Append section if it has content
+    if (lines.length) {
+      chunks.push([sectionTitle, lines]);
+    }
   });
 
-  // ---------- Legacy checkbox columns (with clean negatives for History) ----------
+  // ---------- Legacy checkbox columns (kept intact) ----------
+  // The hidden legacy mirror sections are already built; use them to render checked items.
   const sectionOrder = new Map([['1',1],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['mixed',8]]);
   const legacySections = Array.from(document.getElementsByClassName('form-section')).sort((a,b)=>{
     const oa = sectionOrder.get(a.id) ?? 999;
@@ -200,55 +179,33 @@ async function generateOutput() {
   });
 
   let legacyLines = [];
-
   legacySections.forEach(section => {
-    const secKey = sectionKey(section.id);
-    const headers = sectionHeaders(secKey); // {col1, col2} or null
-
-    // Collect checked items, but skip the header checkboxes themselves
-    const col1All = Array.from(section.querySelectorAll('input.column-1-symptom-checkbox'));
-    const col2All = Array.from(section.querySelectorAll('input.column-2-symptom-checkbox'));
+    const column1Checkboxes = section.querySelectorAll('input.column-1-symptom-checkbox');
+    const column2Checkboxes = section.querySelectorAll('input.column-2-symptom-checkbox');
 
     const column1Checked = [];
     const column2Checked = [];
 
-    col1All.forEach(checkbox => {
-      if (headers && checkbox.id === headers.col1) return; // skip header tickbox
+    column1Checkboxes.forEach(checkbox => {
       if (checkbox.checked) {
         const textareaId = checkbox.getAttribute('data-textarea');
         const textarea = textareaId ? document.getElementById(textareaId) : null;
-        const associatedText = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
-        column1Checked.push(checkbox.id + associatedText);
+        const assoc = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
+        column1Checked.push(checkbox.id + assoc);
       }
     });
 
-    col2All.forEach(checkbox => {
-      if (headers && checkbox.id === headers.col2) return; // skip header tickbox
+    column2Checkboxes.forEach(checkbox => {
       if (checkbox.checked) {
         const textareaId = checkbox.getAttribute('data-textarea');
         const textarea = textareaId ? document.getElementById(textareaId) : null;
-        const associatedText = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
-        column2Checked.push(checkbox.id + associatedText);
+        const assoc = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
+        column2Checked.push(checkbox.id + assoc);
       }
     });
 
-    // Column 1 (positive) stays as-is
-    if (column1Checked.length > 0) {
-      legacyLines.push(formatCheckboxText(1, column1Checked));
-    }
-
-    // Column 2 (negative) — special handling for History to avoid "no no ..."
-    if (column2Checked.length > 0) {
-      if (secKey === 'his') {
-        // Strip "no " prefixes from each item, then write a single clean sentence
-        const baseItems = column2Checked.map(s => s.replace(/^no\s+/i, '').trim());
-        const sentence = `Has no history of ${joinNatural(baseItems, 'or')}.`;
-        legacyLines.push(sentence);
-      } else {
-        // Other sections keep existing behaviour (e.g., "no fever, no vomiting.")
-        legacyLines.push(formatCheckboxText(2, column2Checked));
-      }
-    }
+    if (column1Checked.length > 0) legacyLines.push(formatCheckboxText(1, column1Checked));
+    if (column2Checked.length > 0) legacyLines.push(formatCheckboxText(2, column2Checked));
   });
 
   // ---------- Compose final text ----------
@@ -262,7 +219,7 @@ async function generateOutput() {
   }
   outputText = outputText.trim();
 
-  // Show
+  // Write / show
   if (outputArea) outputArea.value = outputText;
   if (outputContainer && outputContainer.style.display === 'none') outputContainer.style.display = 'block';
   if (modalText) modalText.textContent = outputText || 'No output generated.';
@@ -587,14 +544,16 @@ function closeOutput() {
 
     candidates.forEach(src => {
       if (src.closest('#legacy-mirror')) return;
-      if (src.dataset?.skip === 'true') return;
+      if (src.dataset && src.dataset.skip === 'true') return;
 
+      // ensure id for mapping
       if (!src.id) src.id = 'fld-' + Math.random().toString(36).slice(2,9);
       const legacyId = (src.dataset && src.dataset.legacyId) ? src.dataset.legacyId : src.id;
 
       let target = legacyRoot.querySelector('#' + cssEscape(legacyId));
       if (!target) {
-        const makeTextarea = src.tagName?.toLowerCase?.() === 'textarea' || src.isContentEditable;
+        // mirror as textarea for multi-line, else text input
+        const makeTextarea = src.tagName.toLowerCase() === 'textarea' || src.isContentEditable;
         target = document.createElement(makeTextarea ? 'textarea' : 'input');
         if (!makeTextarea) target.type = 'text';
         target.id = legacyId;
@@ -602,8 +561,10 @@ function closeOutput() {
       }
 
       const doSync = () => { target.value = getSmartValue(src); };
+      // initial + robust event coverage
       doSync();
       ['input','change','blur'].forEach(evt => src.addEventListener(evt, doSync));
+      // for contenteditable: listen to input as well
       if (src.isContentEditable) src.addEventListener('input', doSync);
     });
   }
@@ -613,6 +574,7 @@ function closeOutput() {
       muts.forEach(m => {
         m.addedNodes.forEach(node => {
           if (!(node instanceof Element)) return;
+          // wire this node and its descendants
           if (node.matches?.('textarea, input, select, [contenteditable][data-field]')) {
             autoWireAllFreeText(node.parentElement || node);
           } else if (node.querySelector) {
@@ -649,14 +611,7 @@ function closeOutput() {
   }
   function updateHeadersForGrid(gridId) {
     if (!gridId) return;
-    const headers = {
-      redFlagGrid: { col1: 'Reports', col2: 'Reports' },
-      commonGrid: { col1: 'Complaining of', col2: 'Has' },
-      additionalGrid: { col1: 'Reports', col2: 'Reports' },
-      reproductiveGrid: { col1: 'Reports', col2: 'Reports' },
-      historyGrid: { col1: 'Has a history of', col2: 'Has no history of' },
-    }[gridId];
-    if (!headers) return;
+    const headers = GROUP_HEADERS[gridId]; if (!headers) return;
     const sec = sectionForGrid(gridId); if (!sec) return;
     const h1 = sec.querySelector('input.column-1-symptom-checkbox#' + cssEscape(headers.col1));
     const h2 = sec.querySelector('input.column-2-symptom-checkbox#' + cssEscape(headers.col2));
