@@ -1,38 +1,42 @@
 // ==============================
-// index.js (future-proof version)
+// Streamlined index.js
 // ==============================
 
 // Collapse/expand cards
-function toggleCard(header) {
+window.toggleCard = function(header) {
   header.parentElement.classList.toggle('collapsed');
 }
 
-// ---------- small utils ----------
+// ---------- Utility functions ----------
 function capitalizeAndAddFullStop(text) {
   if (!text) return '';
   return text.charAt(0).toUpperCase() + text.slice(1) + (text.endsWith('.') ? '' : '.');
 }
-function hasText(s) { return !!(s && String(s).trim().length); }
-function cssEscape(id) { return (window.CSS && CSS.escape) ? CSS.escape(id) : String(id).replace(/([ #.;,()%&!+])/g, '\\$1'); }
-function normalizeKey(s) { return (s || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+
+function hasText(s) { 
+  return !!(s && String(s).trim().length); 
+}
 
 function getSmartLabel(el) {
   if (el.dataset && el.dataset.label && hasText(el.dataset.label)) return el.dataset.label.trim();
-
+  
   // label[for]
   if (el.id) {
-    const lab = document.querySelector(`label[for="${cssEscape(el.id)}"]`);
+    const lab = document.querySelector(`label[for="${el.id}"]`);
     if (lab && hasText(lab.textContent)) return lab.textContent.trim();
   }
+  
   // nearest form-group > label
   const fg = el.closest('.form-group');
   if (fg) {
     const lab = fg.querySelector('label');
     if (lab && hasText(lab.textContent)) return lab.textContent.trim();
   }
+  
   // aria-label / placeholder
   if (el.getAttribute && hasText(el.getAttribute('aria-label'))) return el.getAttribute('aria-label').trim();
   if (el.placeholder && hasText(el.placeholder)) return el.placeholder.trim();
+  
   // fallbacks
   if (el.id) return el.id;
   if (el.name) return el.name;
@@ -45,7 +49,6 @@ function getSmartValue(el) {
   if (tag === 'input') {
     const type = (el.type || '').toLowerCase();
     if (['text','number','date','time','email','tel','url'].includes(type)) return el.value || '';
-    // radios handled via group function; ignore here
     return '';
   }
   if (tag === 'select') {
@@ -62,54 +65,20 @@ function getSmartValue(el) {
   return '';
 }
 
-function formatCheckboxText(column, checked) {
-  let text = '';
-  for (let i = 0; i < checked.length; i++) {
-    text += checked[i];
-    if (i === checked.length - 1) {
-      text += '.';
-    } else if ((column === 1 && i === 0) || (column === 2 && i === 0)) {
-      text += ' ';
-    } else if (i === checked.length - 2) {
-      if (column === 2) {
-        let firstWord = 'or';
-        if (i > 0) {
-          const lastInput = checked[i - 1] || '';
-          firstWord = lastInput.trim().split(' ')[0].toLowerCase();
-        }
-        text += firstWord === 'no' ? ' and ' : ' or ';
-      } else {
-        text += ' and ';
-      }
-    } else if (checked.length > 1 && i < checked.length - 1) {
-      text += ', ';
-    }
-  }
-  if (column === 2) text = text.trim() + '\n';
-  return text;
-}
-
 // ================
-// OUTPUT PIPELINE
+// OUTPUT GENERATION (Streamlined)
 // ================
 async function generateOutput() {
-  const outputContainer = document.getElementById('output-container');
-  const outputArea = document.getElementById('output-text');
-  const outputActions = document.getElementById('output-actions');
   const modal = document.getElementById('outputModal');
   const modalText = document.getElementById('outputText');
-
-  let chunks = []; // array of [sectionTitle, lines[]]
-
-  // Group by card title (or data-group)
+  
+  let lines = []; // Single array for all output lines
+  
+  // Process cards in order they appear in the form
   const cards = document.querySelectorAll('.card');
+  
   cards.forEach(card => {
-    const sectionTitle = card.getAttribute('data-group')
-      || (card.querySelector('.card-header h3')?.textContent?.trim())
-      || 'Section';
-    const lines = [];
-
-    // Collect all candidate controls inside card content
+    // Get all form controls in this card
     const controls = card.querySelectorAll(`
       textarea,
       input[type="text"],
@@ -122,146 +91,225 @@ async function generateOutput() {
       select,
       [contenteditable][data-field]
     `);
-
-    // Radio groups inside this card: collect by name
-    const radios = card.querySelectorAll('input[type="radio"]:not([data-skip="true"])');
-    const radioNames = new Set(Array.from(radios).map(r => r.name).filter(Boolean));
-    radioNames.forEach(name => {
-      const checked = card.querySelector(`input[type="radio"][name="${cssEscape(name)}"]:checked`);
-      if (checked) {
-        const labelEl = card.querySelector(`label[for="${cssEscape(checked.id)}"]`);
-        const valueLabel = labelEl && hasText(labelEl.textContent) ? labelEl.textContent.trim() : (checked.value || 'Yes');
-        // Representative element to derive field label
-        const representative = card.querySelector(`input[type="radio"][name="${cssEscape(name)}"]`);
-        const fieldLabel = getSmartLabel(representative);
-        if (hasText(valueLabel)) lines.push(`${fieldLabel} - ${valueLabel}`);
-      }
-    });
-
-    // Other controls
-    const seen = new Set();
+    
+    // Process controls in the order they appear
     controls.forEach(ctrl => {
-      if (ctrl.closest('#legacy-mirror')) return;
       if (ctrl.dataset && ctrl.dataset.skip === 'true') return;
-      if (ctrl.type && ctrl.type.toLowerCase() === 'checkbox') return; // handled separately via legacy mirror
-      if (ctrl.matches('input[type="radio"]')) return; // already handled via group
-
-      // avoid duplicates
-      const key = ctrl.id || ctrl.name || ctrl;
-      if (seen.has(key)) return;
-      seen.add(key);
-
+      
       const val = getSmartValue(ctrl);
       if (!hasText(val)) return;
-
+      
       const fieldLabel = getSmartLabel(ctrl);
-      // Style decisions: for big narratives (textareas/contenteditable) make sentences
+      
+      // Format based on control type
       if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
         lines.push(capitalizeAndAddFullStop(val.trim()));
       } else {
         lines.push(`${fieldLabel} - ${val.trim()}`);
       }
     });
-
-    // Append section if it has content
-    if (lines.length) {
-      chunks.push([sectionTitle, lines]);
+    
+    // Process symptom toggles in this card
+    const symptoms = processSymptomToggles(card);
+    if (symptoms.length > 0) {
+      lines.push(...symptoms);
     }
   });
-
-  // ---------- Legacy checkbox columns (kept intact) ----------
-  // The hidden legacy mirror sections are already built; use them to render checked items.
-  const sectionOrder = new Map([['1',1],['2',2],['3',3],['4',4],['5',5],['6',6],['7',7],['mixed',8]]);
-  const legacySections = Array.from(document.getElementsByClassName('form-section')).sort((a,b)=>{
-    const oa = sectionOrder.get(a.id) ?? 999;
-    const ob = sectionOrder.get(b.id) ?? 999;
-    return oa - ob;
-  });
-
-  let legacyLines = [];
-  legacySections.forEach(section => {
-    const column1Checkboxes = section.querySelectorAll('input.column-1-symptom-checkbox');
-    const column2Checkboxes = section.querySelectorAll('input.column-2-symptom-checkbox');
-
-    const column1Checked = [];
-    const column2Checked = [];
-
-    column1Checkboxes.forEach(checkbox => {
-      if (checkbox.checked) {
-        const textareaId = checkbox.getAttribute('data-textarea');
-        const textarea = textareaId ? document.getElementById(textareaId) : null;
-        const assoc = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
-        column1Checked.push(checkbox.id + assoc);
-      }
-    });
-
-    column2Checkboxes.forEach(checkbox => {
-      if (checkbox.checked) {
-        const textareaId = checkbox.getAttribute('data-textarea');
-        const textarea = textareaId ? document.getElementById(textareaId) : null;
-        const assoc = textarea && textarea.value && textarea.value.trim() ? ' ' + textarea.value.trim() : '';
-        column2Checked.push(checkbox.id + assoc);
-      }
-    });
-
-    if (column1Checked.length > 0) legacyLines.push(formatCheckboxText(1, column1Checked));
-    if (column2Checked.length > 0) legacyLines.push(formatCheckboxText(2, column2Checked));
-  });
-
-  // ---------- Compose final text ----------
-  let outputText = '';
-  chunks.forEach(([title, lines]) => {
-    outputText += `\n${title}\n${'-'.repeat(title.length)}\n`;
-    outputText += lines.join('\n') + '\n';
-  });
-  if (legacyLines.length) {
-    outputText += `\nSymptoms Summary\n----------------\n` + legacyLines.join('\n').trim() + '\n';
+  
+  // Compose final text
+  const outputText = lines.join('\n').trim();
+  
+  // Update modal content
+  if (modalText) {
+    modalText.value = outputText || 'No data to display.';
+    // Make sure textarea is properly sized
+    modalText.style.height = 'auto';
+    modalText.style.height = modalText.scrollHeight + 'px';
   }
-  outputText = outputText.trim();
-
-  // Write / show
-  if (outputArea) outputArea.value = outputText;
-  if (outputContainer && outputContainer.style.display === 'none') outputContainer.style.display = 'block';
-  if (modalText) modalText.textContent = outputText || 'No output generated.';
-  if (modal) modal.style.display = 'flex';
-
-  // Action icons once
-  if (outputActions && !outputActions.dataset.initialized) {
-    const anchorEmail = document.createElement('a');
-    anchorEmail.href = '#';
-    anchorEmail.title = 'Email Report';
-    const imgEmail = document.createElement('img');
-    imgEmail.src = 'https://checksymptoms.co.uk/wp-content/uploads/2024/04/email.gif';
-    imgEmail.alt = 'Click to Email';
-    imgEmail.style.width = '180px';
-    imgEmail.style.height = 'auto';
-    imgEmail.addEventListener('click', emailOutput);
-
-    const anchorCopyInfo = document.createElement('a');
-    anchorCopyInfo.href = '#';
-    anchorCopyInfo.title = 'Copy Report';
-    const imgCopyInfo = document.createElement('img');
-    imgCopyInfo.src = 'https://checksymptoms.co.uk/wp-content/uploads/2024/07/copy-icon.png';
-    imgCopyInfo.alt = 'Click to copy information';
-    imgCopyInfo.style.width = '100px';
-    imgCopyInfo.style.height = 'auto';
-    imgCopyInfo.addEventListener('click', copyOutput);
-
-    outputActions.appendChild(anchorEmail);
-    anchorEmail.appendChild(imgEmail);
-    outputActions.appendChild(anchorCopyInfo);
-    anchorCopyInfo.appendChild(imgCopyInfo);
-    outputActions.dataset.initialized = 'true';
+  
+  // Show modal
+  if (modal) {
+    modal.style.display = 'flex';
   }
 }
 
+function processSymptomToggles(card) {
+  const results = [];
+  const haveSymptoms = [];
+  const dontHaveSymptoms = [];
+  
+  // Check if this is the Medical History card
+  const isMedicalHistory = card.getAttribute('data-grid') === 'historyGrid';
+  
+  // Collect all symptom toggles
+  card.querySelectorAll('.symptom-toggle').forEach(toggle => {
+    const symptomText = toggle.textContent.trim();
+    if (toggle.classList.contains('have')) {
+      haveSymptoms.push(symptomText);
+    } else if (toggle.classList.contains('donthave')) {
+      dontHaveSymptoms.push(symptomText);
+    }
+  });
+  
+  // Format "have" symptoms
+  if (haveSymptoms.length > 0) {
+    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory);
+    results.push(formatted);
+  }
+  
+  // Format "don't have" symptoms  
+  if (dontHaveSymptoms.length > 0) {
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory);
+    results.push(formatted);
+  }
+  
+  return results;
+}
+
+function formatSymptomList(symptoms, type, isMedicalHistory = false) {
+  // Variety of medical terminology for more natural output
+  const positiveStarters = [
+    'Reports', 'Presents with', 'Experiencing', 'Complains of', 
+    'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
+    'Positive for', 'Affirms', 'Acknowledges', 'Mentions'
+  ];
+  
+  const positiveHistoryStarters = [
+    'Has a history of', 'Previous history of', 'Past medical history includes',
+    'History significant for', 'Prior diagnosis of'
+  ];
+  
+  const negativeStarters = [
+    'Denies', 'Negative for', 'No', 'Does not have', 'Reports no',
+    'Free of', 'Clear of', 'Does not complain of', 'Does not report',
+    'No history of', 'Unremarkable for', 'Does not admit to', 'No symptoms of'
+  ];
+  
+  const negativeHistoryStarters = [
+    'No history of', 'No prior history of', 'Denies history of',
+    'No previous diagnosis of', 'Never had'
+  ];
+  
+  // Intelligently select starter based on context
+  let starter = '';
+  if (isMedicalHistory) {
+    // Special handling for medical history
+    if (type === 'positive') {
+      starter = selectFromArray(positiveHistoryStarters);
+    } else {
+      starter = selectFromArray(negativeHistoryStarters);
+    }
+  } else if (type === 'positive') {
+    // Use different starters based on symptom type and count
+    if (symptoms.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
+      starter = selectFromArray(['Complains of', 'Reports', 'Describes', 'Experiencing']);
+    } else if (symptoms.length > 3) {
+      starter = selectFromArray(['Presents with', 'Experiencing', 'Reports']);
+    } else {
+      starter = selectFromArray(positiveStarters);
+    }
+  } else {
+    // Select negative starter based on context
+    if (symptoms.length === 1) {
+      starter = selectFromArray(['Denies', 'Negative for', 'No', 'Reports no']);
+    } else {
+      starter = selectFromArray(negativeStarters);
+    }
+  }
+  
+  // Clean up symptom names for better grammar
+  const cleanedSymptoms = symptoms.map(s => {
+    let cleaned = s.toLowerCase();
+    
+    // Handle special cases for negative phrasing
+    if (type === 'negative' && !isMedicalHistory) {
+      // Remove "Can't" or "Cannot" at the beginning for negative context
+      cleaned = cleaned.replace(/^can't\s+/i, '').replace(/^cannot\s+/i, '');
+      
+      // Convert negative symptoms to positive form for "no" prefix
+      if (cleaned.includes('can\'t pass')) {
+        cleaned = cleaned.replace('can\'t pass', 'inability to pass');
+      }
+      if (cleaned === 'pass stool/gas') {
+        cleaned = 'ability to pass stool or gas';
+      }
+      if (cleaned === 'pass stool') {
+        cleaned = 'ability to pass stool';
+      }
+      if (cleaned === 'pass gas') {
+        cleaned = 'ability to pass gas';
+      }
+    }
+    
+    return cleaned;
+  });
+  
+  // Format the sentence based on the starter phrase
+  const starterLower = starter.toLowerCase();
+  
+  // Handle different starter patterns
+  if (starterLower === 'no' || starterLower === 'negative for' || starterLower === 'free of' || 
+      starterLower === 'clear of' || starterLower === 'unremarkable for') {
+    // These starters work directly with symptom list
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      if (type === 'negative') {
+        return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
+      } else {
+        return `${starter} ${cleanedSymptoms.join(', ')} and ${last}.`;
+      }
+    }
+  } else if (starterLower.includes('does not') || starterLower.includes('reports no') || 
+             starterLower.includes('no history') || starterLower.includes('no prior') ||
+             starterLower.includes('denies history') || starterLower.includes('never had') ||
+             starterLower.includes('no previous') || starterLower.includes('no symptoms')) {
+    // These need special handling
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
+    }
+  } else if (starterLower.includes('history') || starterLower.includes('diagnosis')) {
+    // History-specific starters
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      return `${starter} ${cleanedSymptoms.join(', ')} and ${last}.`;
+    }
+  } else {
+    // Standard format for most starters
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      const conjunction = (type === 'negative' && !starterLower.includes('denies')) ? 'or' : 
+                          (type === 'negative' ? 'or' : 'and');
+      return `${starter} ${cleanedSymptoms.join(', ')} ${conjunction} ${last}.`;
+    }
+  }
+}
+
+// Helper function to randomly select from array for variety
+function selectFromArray(arr) {
+  // Use a semi-random selection that considers position in output for variety
+  const index = Math.floor(Math.random() * arr.length);
+  return arr[index];
+}
+
+// Copy output function
 async function copyOutput() {
-  const outputArea = document.getElementById('output-text');
   const modalText = document.getElementById('outputText');
-  const text = (outputArea && outputArea.value && outputArea.value.trim())
-    ? outputArea.value.trim()
-    : (modalText && modalText.textContent ? modalText.textContent.trim() : '');
-  if (!text) return alert('Nothing to copy yet — please generate the report first.');
+  const text = modalText ? modalText.value.trim() : '';
+  
+  if (!text) {
+    alert('Nothing to copy yet — please generate the report first.');
+    return;
+  }
+  
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text);
@@ -279,376 +327,108 @@ async function copyOutput() {
   }
 }
 
+// Email output function
 function emailOutput() {
-  const outputArea = document.getElementById('output-text');
   const modalText = document.getElementById('outputText');
-  const text = (outputArea && outputArea.value && outputArea.value.trim())
-    ? outputArea.value.trim()
-    : (modalText && modalText.textContent ? modalText.textContent.trim() : '');
-  if (!text) return alert('Please generate the report before sending an email.');
-  const subject = encodeURIComponent('Abdominal pain symptom form for ');
+  const text = modalText ? modalText.value.trim() : '';
+  
+  if (!text) {
+    alert('Please generate the report before sending an email.');
+    return;
+  }
+  
+  const subject = encodeURIComponent('Abdominal pain symptom form');
   const body = encodeURIComponent(text);
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
 
+// Close modal function
 function closeOutput() {
   const modal = document.getElementById('outputModal');
   if (modal) modal.style.display = 'none';
 }
 
-// ===== Dashboard → Legacy adapter (tri-state pills → legacy checkboxes, auto-headers) =====
-(function () {
-  // Map data-symptom → exact legacy IDs
-  const LEGACY_ID = {
-    // red flags
-    'rigid abdomen': 'rigid abdomen',
-    'bloody stool': 'bloody stool',
-    'dark vomitus': 'dark vomitus',
-    'blood in vomitus': 'blood in vomitus',
-    'unexplained weight loss': 'unexplained weight loss',
-    'jaundice': 'jaundice',
-    'abdominal swelling': 'abdominal swelling',
-    'inability to pass stool': 'inability to pass stool',
-    'inability to pass stool and gas': 'inability to pass stool and gas',
-    'chest pain': 'chest pain',
-    'shortness of breath': 'shortness of breath',
-    'pain following an injury': 'pain following an injury',
-    'cold, clammy skin': 'cold, clammy skin',
-    'shallow breathing': 'shallow breathing',
-    'rapid heartbeat': 'rapid heartbeat',
-    // common
-    'fever': 'fever',
-    'loss of appetite': 'loss of appetite',
-    'nausea': 'nausea',
-    'vomiting': 'vomiting',
-    'bloating': 'bloating',
-    'back pain': 'back pain',
-    'diarrhea': 'diarrhea',
-    'constipation': 'constipation',
-    // additional
-    'pale stool': 'Pale stool',
-    'not passing gas': 'not passing gas',
-    'abdominal distension': 'abdominal distension',
-    'hematuria': 'hematuria',
-    'dysuria': 'dysuria',
-    'frequency': 'frequency',
-    'foul smelling urine': 'foul smelling urine',
-    'melena': 'melena',
-    // reproductive
-    'testicular pain': 'testicular pain',
-    'urethral discharge': 'urethral discharge',
-    'vaginal discharge': 'vaginal discharge',
-    'dyspareunia': 'dyspareunia',
-    'being sexually active': 'being sexually active',
-    'using contraception': 'using contraception',
-    'doing a home pregnancy test': 'doing a home pregnancy test',
-    'positive pregnancy test': 'positive pregnancy test',
-    'abdominal pain every time periods begin': 'abdominal pain every time periods begin',
-    'vaginal bleeding with clots': 'vaginal bleeding with clots',
-    'vaginal bleeding with fetal tissue': 'vaginal bleeding with fetal tissue',
-    // history
-    'irritable bowel disease': 'irritable bowel disease',
-    'inflammatory bowel disease': 'inflammatory bowel disease',
-    'diverticulosis': 'diverticulosis',
-    'pancreatitis': 'pancreatitis',
-    'gallstones': 'gallstones',
-    'appendicitis': 'appendicitis',
-    'abdominal surgery': 'abdominal surgery',
-    'pelvic surgery': 'pelvic surgery',
-    'aaa (abdominal aortic aneurysm)': 'AAA (Abdominal Aortic Aneurysm)',
-    'endometritis': 'endometritis',
-    'ectopic pregnancy': 'ectopic pregnancy',
-    'peptic ulcers': 'peptic ulcers',
-    'diabetes': 'diabetes',
-    'sickle cell disease': 'sickle cell disease',
-    'kidney stones': 'kidney stones',
-    'ischemic bowel disease': 'ischemic bowel disease',
-    'food allergy': 'food allergy'
-  };
-
-  const GROUP_HEADERS = {
-    redFlagGrid: { col1: 'Reports', col2: 'Reports' },
-    commonGrid: { col1: 'Complaining of', col2: 'Has' },
-    additionalGrid: { col1: 'Reports', col2: 'Reports' },
-    reproductiveGrid: { col1: 'Reports', col2: 'Reports' },
-    historyGrid: { col1: 'Has a history of', col2: 'Has no history of' },
-  };
-
-  // Hidden legacy mirror
-  const legacy = document.createElement('div');
-  legacy.id = 'legacy-mirror';
-  legacy.style.display = 'none';
-
-  // Build legacy sections
-  const sections = {
-    s1: mkSection('1'),
-    s2: mkSection('2'),
-    red: mkSection('3'),
-    com: mkSection('4'),
-    add: mkSection('5'),
-    rep: mkSection('6'),
-    his: mkSection('7'),
-    mixed: mkSection('mixed')
-  };
-
-  // s1 free text & LMP
-  sections.s1.append(mkTextarea('description'), mkText('Last menstrual period-'));
-  // s2 pain block
-  sections.s2.append(
-    mkText('Pain located in'),
-    mkText('Radiates to'),
-    mkText('Character of pain is'),
-    mkText('Pain is associated with'),
-    mkText('Alleviated by'),
-    mkText('Pain is exacerbated by'),
-    mkText('Pain severity -')
-  );
-  // mixed (meds & lifestyle etc.)
-  sections.mixed.append(
-    mkText('Currently taking -'),
-    mkText('Drug Allergies -'),
-    mkText('Past Medical History -'),
-    mkText('Past Surgical History -'),
-    mkText(' Response to previous treatments or interventions -'),
-    mkText('Smoking History -'),
-    mkText('Alcohol History -'),
-    mkText('Recreational drug use -')
-  );
-  // further details textarea (legacy id)
-  sections.add.append(mkTextarea('further-details'));
-
-  document.addEventListener('DOMContentLoaded', () => {
-    // Attach legacy sections
-    const form = document.getElementById('symptomForm') || document.body;
-    Object.values(sections).forEach(sec => legacy.appendChild(sec));
-    form.appendChild(legacy);
-
-    // Build mirrored groups for each grid
-    ['redFlagGrid', 'commonGrid', 'additionalGrid', 'reproductiveGrid', 'historyGrid'].forEach(gridId => {
-      const items = collectItems(gridId);
-      addGroup(sectionForGrid(gridId), gridId, items);
+// ===== Symptom toggle behavior =====
+document.addEventListener('DOMContentLoaded', () => {
+  // Tri-state pills behavior
+  document.querySelectorAll('.symptom-toggle').forEach(pill => {
+    pill.addEventListener('click', () => {
+      cycleTriState(pill);
+      updateCounters(pill.closest('.card'));
     });
-
-    // Tri-state pills behavior
-    document.querySelectorAll('.symptom-toggle').forEach(pill => {
-      pill.addEventListener('click', () => {
-        cycleTriState(pill);
-        syncPillToLegacy(pill);
-        updateHeadersForGrid(closestGridId(pill));
-        updateCounters(pill.closest('.card'));
-      });
-
-      pill.addEventListener('keydown', (e) => {
-        if (e.key === ' ' || e.key === 'Enter') {
-          e.preventDefault();
-          pill.click();
-        }
-      });
-      setAria(pill);
-    });
-
-    // Auto-wire ALL free-text-like controls initially + on future DOM changes
-    autoWireAllFreeText();
-    observeDynamicControls();
-
-    // Seed counters
-    document.querySelectorAll('.card').forEach(updateCounters);
-  });
-
-  function mkSection(id) {
-    const s = document.createElement('div');
-    s.className = 'form-section';
-    s.id = id;
-    return s;
-  }
-  function mkCheckbox(id, cls) { const i = document.createElement('input'); i.type='checkbox'; i.id=id; i.className=cls; return i; }
-  function mkText(id) { const i = document.createElement('input'); i.type='text'; i.id=id; return i; }
-  function mkTextarea(id) { const t = document.createElement('textarea'); t.id=id; return t; }
-
-  function collectItems(gridId) {
-    const grid = document.getElementById(gridId);
-    if (!grid) return [];
-    const items = [];
-    grid.querySelectorAll('.symptom-toggle').forEach(t => {
-      const key = normalizeKey(t.dataset.symptom);
-      const legacyId = LEGACY_ID[key];
-      if (!legacyId) return;
-      items.push(legacyId);
-    });
-    return items;
-  }
-
-  function addGroup(sec, gridId, legacyIds) {
-    if (!sec) return;
-    const headers = GROUP_HEADERS[gridId];
-    sec.append(mkCheckbox(headers.col1, 'column-1-symptom-checkbox'), mkCheckbox(headers.col2, 'column-2-symptom-checkbox'));
-    legacyIds.forEach(legacyId => {
-      sec.append(mkCheckbox(legacyId, 'column-1-symptom-checkbox'));
-      sec.append(mkCheckbox(makeNegativeId(legacyId), 'column-2-symptom-checkbox'));
-    });
-  }
-
-  function cycleTriState(el) {
-    if (el.classList.contains('donthave')) {
-      el.classList.remove('donthave'); el.classList.add('have');
-    } else if (el.classList.contains('have')) {
-      el.classList.remove('have');
-    } else {
-      el.classList.add('donthave');
-    }
-    setAria(el);
-  }
-
-  function syncPillToLegacy(pill) {
-    const key = normalizeKey(pill.dataset.symptom);
-    const base = LEGACY_ID[key];
-    if (!base) return;
-    const posId = base;
-    const negId = makeNegativeId(base);
-    if (!pill.classList.contains('have') && !pill.classList.contains('donthave')) {
-      setLegacyChecked(posId, false); setLegacyChecked(negId, false);
-    } else if (pill.classList.contains('have')) {
-      setLegacyChecked(posId, true); setLegacyChecked(negId, false);
-    } else {
-      setLegacyChecked(posId, false); setLegacyChecked(negId, true);
-    }
-  }
-
-  function autoWireAllFreeText(root=document) {
-    const legacyRoot = document.getElementById('legacy-mirror');
-
-    // decide bucket by id (specials) or default to mixed
-    const painIds = new Set([
-      'Pain located in','Radiates to','Character of pain is','Pain is associated with',
-      'Alleviated by','Pain is exacerbated by','Pain severity -'
-    ]);
-    function pickBucketFor(id) {
-      if (id === 'description' || id === 'Last menstrual period-') return sections.s1;
-      if (painIds.has(id)) return sections.s2;
-      if (id === 'further-details') return sections.add;
-      return sections.mixed;
-    }
-
-    const candidates = root.querySelectorAll(`
-      textarea,
-      input[type="text"],
-      input[type="number"],
-      input[type="date"],
-      input[type="time"],
-      input[type="email"],
-      input[type="tel"],
-      input[type="url"],
-      select,
-      [contenteditable][data-field]
-    `);
-
-    candidates.forEach(src => {
-      if (src.closest('#legacy-mirror')) return;
-      if (src.dataset && src.dataset.skip === 'true') return;
-
-      // ensure id for mapping
-      if (!src.id) src.id = 'fld-' + Math.random().toString(36).slice(2,9);
-      const legacyId = (src.dataset && src.dataset.legacyId) ? src.dataset.legacyId : src.id;
-
-      let target = legacyRoot.querySelector('#' + cssEscape(legacyId));
-      if (!target) {
-        // mirror as textarea for multi-line, else text input
-        const makeTextarea = src.tagName.toLowerCase() === 'textarea' || src.isContentEditable;
-        target = document.createElement(makeTextarea ? 'textarea' : 'input');
-        if (!makeTextarea) target.type = 'text';
-        target.id = legacyId;
-        pickBucketFor(legacyId).appendChild(target);
+    
+    pill.addEventListener('keydown', (e) => {
+      if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        pill.click();
       }
-
-      const doSync = () => { target.value = getSmartValue(src); };
-      // initial + robust event coverage
-      doSync();
-      ['input','change','blur'].forEach(evt => src.addEventListener(evt, doSync));
-      // for contenteditable: listen to input as well
-      if (src.isContentEditable) src.addEventListener('input', doSync);
+    });
+    
+    setAria(pill);
+  });
+  
+  // Initialize counters
+  document.querySelectorAll('.card').forEach(updateCounters);
+  
+  // Auto-resize textarea in modal
+  const modalText = document.getElementById('outputText');
+  if (modalText) {
+    modalText.addEventListener('input', function() {
+      this.style.height = 'auto';
+      this.style.height = this.scrollHeight + 'px';
     });
   }
+});
 
-  function observeDynamicControls() {
-    const observer = new MutationObserver(muts => {
-      muts.forEach(m => {
-        m.addedNodes.forEach(node => {
-          if (!(node instanceof Element)) return;
-          // wire this node and its descendants
-          if (node.matches?.('textarea, input, select, [contenteditable][data-field]')) {
-            autoWireAllFreeText(node.parentElement || node);
-          } else if (node.querySelector) {
-            const any = node.querySelector('textarea, input, select, [contenteditable][data-field]');
-            if (any) autoWireAllFreeText(node);
-          }
-        });
-      });
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
+function cycleTriState(el) {
+  if (el.classList.contains('donthave')) {
+    el.classList.remove('donthave');
+    el.classList.add('have');
+  } else if (el.classList.contains('have')) {
+    el.classList.remove('have');
+  } else {
+    el.classList.add('donthave');
   }
+  setAria(el);
+}
 
-  function makeNegativeId(legacyId) {
-    if (/^no\s+/i.test(legacyId)) return legacyId;
-    if (legacyId === 'not passing gas') return 'passing gas';
-    return 'no ' + legacyId;
+function setAria(el) {
+  const has = el.classList.contains('have');
+  const not = el.classList.contains('donthave');
+  let state = 'neutral';
+  if (has) state = 'have';
+  else if (not) state = 'dont-have';
+  
+  el.setAttribute('aria-pressed', has || not ? 'true' : 'false');
+  el.setAttribute('data-state', state);
+  el.setAttribute('role', 'button');
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
+  el.setAttribute('aria-label', `${el.textContent.trim()} – ${state.replace('-', ' ')}`);
+}
+
+function updateCounters(card) {
+  if (!card) return;
+  const haveN = card.querySelectorAll('.symptom-toggle.have').length;
+  const dontN = card.querySelectorAll('.symptom-toggle.donthave').length;
+  const haveChip = card.querySelector('.state-chip.have');
+  const dontChip = card.querySelector('.state-chip.donthave');
+  
+  if (haveChip) {
+    haveChip.dataset.countHave = String(haveN);
+    haveChip.textContent = `${haveN} have`;
   }
-  function setLegacyChecked(id, val) {
-    const el = document.querySelector('#legacy-mirror #' + cssEscape(id));
-    if (el) el.checked = !!val;
+  if (dontChip) {
+    dontChip.dataset.countNo = String(dontN);
+    dontChip.textContent = `${dontN} don't`;
   }
-  function closestGridId(pill) {
-    const card = pill.closest('.card'); return card ? card.getAttribute('data-grid') : null;
-  }
-  function sectionForGrid(gridId) {
-    switch (gridId) {
-      case 'redFlagGrid': return sections.red;
-      case 'commonGrid': return sections.com;
-      case 'additionalGrid': return sections.add;
-      case 'reproductiveGrid': return sections.rep;
-      case 'historyGrid': return sections.his;
-      default: return null;
-    }
-  }
-  function updateHeadersForGrid(gridId) {
-    if (!gridId) return;
-    const headers = GROUP_HEADERS[gridId]; if (!headers) return;
-    const sec = sectionForGrid(gridId); if (!sec) return;
-    const h1 = sec.querySelector('input.column-1-symptom-checkbox#' + cssEscape(headers.col1));
-    const h2 = sec.querySelector('input.column-2-symptom-checkbox#' + cssEscape(headers.col2));
-    const posAny = sec.querySelectorAll('input.column-1-symptom-checkbox:not(#' + cssEscape(headers.col1) + '):checked').length > 0;
-    const negAny = sec.querySelectorAll('input.column-2-symptom-checkbox:not(#' + cssEscape(headers.col2) + '):checked').length > 0;
-    if (h1) h1.checked = posAny;
-    if (h2) h2.checked = negAny;
-  }
-  function setAria(el) {
-    const has = el.classList.contains('have');
-    const not = el.classList.contains('donthave');
-    let state = 'neutral';
-    if (has) state = 'have';
-    else if (not) state = 'dont-have';
-    el.setAttribute('aria-pressed', has || not ? 'true' : 'false');
-    el.setAttribute('data-state', state);
-    el.setAttribute('role', 'button');
-    if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-    el.setAttribute('aria-label', `${el.textContent.trim()} – ${state.replace('-', ' ')}`);
-  }
-  function updateCounters(card) {
-    if (!card) return;
-    const haveN = card.querySelectorAll('.symptom-toggle.have').length;
-    const dontN = card.querySelectorAll('.symptom-toggle.donthave').length;
-    const haveChip = card.querySelector('.state-chip.have');
-    const dontChip = card.querySelector('.state-chip.donthave');
-    if (haveChip) { haveChip.dataset.countHave = String(haveN); haveChip.textContent = `${haveN} have`; }
-    if (dontChip) { dontChip.dataset.countNo = String(dontN); dontChip.textContent = `${dontN} don't`; }
-  }
-})();
+}
 
 // Instruction banners
 document.addEventListener('DOMContentLoaded', () => {
   document.querySelectorAll('.ux-instruction').forEach(b => {
     const isTopNote = b.getAttribute('role') === 'note';
     if (isTopNote) {
-      b.innerHTML = '<strong>It\'s very helpful for your medical practitioner reviewing you to have as much information as possible, so they can reach the most accurate diagnosis and provide the best treatment plan.</strong>';
+      b.innerHTML = '<strong>It\'s very helpful for your medical practitioner to have as much information as possible for an accurate diagnosis and treatment plan.</strong>';
     } else {
       b.innerHTML = '<strong>Tap symptoms to cycle through states:</strong> <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don\'t Have</span></div>';
     }

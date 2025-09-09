@@ -3,64 +3,94 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abdominal Pain Assessment Dashboard</title>
+  <title>Abdominal Pain </title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Hidden form container for legacy mirror -->
-  <form id="symptomForm" onsubmit="event.preventDefault(); generateOutput();"></form>
+  <!-- Hidden form container -->
+  <form id="symptomForm" style="display:none;"></form>
 
   <div class="header">
     <div class="header-content">
-      <h1>Abdominal Pain Assessment Dashboard</h1>
+      <h1>Abdominal Pain </h1>
       <button class="generate-btn" type="button" onclick="generateOutput()">Generate Report</button>
     </div>
   </div>
 
   <!-- Top note -->
   <div style="max-width:1200px;margin:12px auto 0;padding:0 20px;">
-    <div class="ux-instruction" role="note" aria-live="polite">
-      It's very helpful for your medical practitioner reviewing you to have as much information as possible, so they can reach the most accurate diagnosis and provide the best treatment plan.
-    </div>
+    <div class="ux-instruction" role="note" aria-live="polite"></div>
   </div>
 
   <div class="dashboard" id="dashboard">
     <!-- Initial Information Card -->
     <div class="card">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Initial Information</h3><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Initial Information</h3>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
         <div class="form-group">
-          <label>When did symptoms start and duration?</label>
+          <label>What are and when did the symptoms start?</label>
           <textarea id="description" placeholder="Describe onset and duration..."></textarea>
         </div>
         <div class="form-group">
           <label>Last menstrual period</label>
-          <input type="text" id="lastPeriod" placeholder="e.g., 2 weeks ago" />
+          <input type="text" id="Last menstrual period-" placeholder="e.g., 2 weeks ago" />
         </div>
       </div>
     </div>
 
     <!-- Pain Assessment Card -->
     <div class="card">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Pain Details</h3><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Pain Details</h3>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="form-group"><label>Pain location</label><input type="text" id="painLocation" placeholder="Where is the pain?" /></div>
-        <div class="form-group"><label>Pain radiation</label><input type="text" id="painRadiation" placeholder="Does it spread elsewhere?" /></div>
-        <div class="form-group"><label>Pain character</label><input type="text" id="painCharacter" placeholder="Sharp, dull, cramping..." /></div>
-        <div class="form-group"><label>Associated factors</label><input type="text" id="painAssociated" placeholder="Meals, movement..." /></div>
-        <div class="form-group"><label>What helps?</label><input type="text" id="painRelief" placeholder="Rest, heat, medication..." /></div>
-        <div class="form-group"><label>What makes it worse?</label><input type="text" id="painWorsen" placeholder="Movement, eating..." /></div>
-        <div class="form-group"><label>Pain severity (1-10)</label><input type="number" id="painSeverity" min="1" max="10" /></div>
+        <div class="form-group">
+          <label>Pain location</label>
+          <input type="text" id="Pain located in" placeholder="Where is the pain?" />
+        </div>
+        <div class="form-group">
+          <label>Pain radiation</label>
+          <input type="text" id="Radiates to" placeholder="Does it spread elsewhere?" />
+        </div>
+        <div class="form-group">
+          <label>Pain character</label>
+          <input type="text" id="Character of pain is" placeholder="Sharp, dull, cramping..." />
+        </div>
+        <div class="form-group">
+          <label>Associated factors</label>
+          <input type="text" id="Pain is associated with" placeholder="Meals, movement..." />
+        </div>
+        <div class="form-group">
+          <label>What helps?</label>
+          <input type="text" id="Alleviated by" placeholder="Rest, heat, medication..." />
+        </div>
+        <div class="form-group">
+          <label>What makes it worse?</label>
+          <input type="text" id="Pain is exacerbated by" placeholder="Movement, eating..." />
+        </div>
+        <div class="form-group">
+          <label>Pain severity (1-10)</label>
+          <input type="number" id="Pain severity -" min="1" max="10" />
+        </div>
       </div>
     </div>
 
     <!-- Red Flag Symptoms Card -->
     <div class="card red-flag-card" data-grid="redFlagGrid">
-      <div class="card-header" onclick="toggleCard(this)"><h3>⚠️ Urgent Warning Signs</h3><span class="state-counters"><span class="state-chip have" data-count-have="0">0 have</span><span class="state-chip donthave" data-count-no="0">0 don't</span></span><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>⚠️ Urgent Warning Signs</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="ux-instruction">Tap symptoms to cycle through states:
-          <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don't Have</span></div>
-        </div>
+        <div class="ux-instruction"></div>
         <div class="symptom-grid" id="redFlagGrid">
           <div class="symptom-toggle" data-symptom="rigid abdomen">Rigid abdomen</div>
           <div class="symptom-toggle" data-symptom="bloody stool">Bloody stool</div>
@@ -83,11 +113,16 @@
 
     <!-- Common Symptoms Card -->
     <div class="card" data-grid="commonGrid">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Common Symptoms</h3><span class="state-counters"><span class="state-chip have" data-count-have="0">0 have</span><span class="state-chip donthave" data-count-no="0">0 don't</span></span><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Common Symptoms</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="ux-instruction">Tap symptoms to cycle through states:
-          <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don't Have</span></div>
-        </div>
+        <div class="ux-instruction"></div>
         <div class="symptom-grid" id="commonGrid">
           <div class="symptom-toggle" data-symptom="fever">Fever</div>
           <div class="symptom-toggle" data-symptom="loss of appetite">Loss of appetite</div>
@@ -103,11 +138,16 @@
 
     <!-- Bowel & Urinary Symptoms Card -->
     <div class="card" data-grid="additionalGrid">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Bowel & Urinary Symptoms</h3><span class="state-counters"><span class="state-chip have" data-count-have="0">0 have</span><span class="state-chip donthave" data-count-no="0">0 don't</span></span><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Bowel & Urinary Symptoms</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="ux-instruction">Tap symptoms to cycle through states:
-          <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don't Have</span></div>
-        </div>
+        <div class="ux-instruction"></div>
         <div class="symptom-grid" id="additionalGrid">
           <div class="symptom-toggle" data-symptom="pale stool">Pale stool</div>
           <div class="symptom-toggle" data-symptom="not passing gas">Can't pass gas</div>
@@ -118,16 +158,25 @@
           <div class="symptom-toggle" data-symptom="foul smelling urine">Smelly urine</div>
           <div class="symptom-toggle" data-symptom="melena">Black, tarry stool</div>
         </div>
+        <div class="form-group" style="margin-top: 15px;">
+          <label>Additional details</label>
+          <textarea id="further-details" placeholder="Any other bowel or urinary symptoms..."></textarea>
+        </div>
       </div>
     </div>
 
     <!-- Reproductive Health Card -->
     <div class="card" data-grid="reproductiveGrid">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Reproductive Health</h3><span class="state-counters"><span class="state-chip have" data-count-have="0">0 have</span><span class="state-chip donthave" data-count-no="0">0 don't</span></span><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Reproductive Health</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="ux-instruction">Tap symptoms to cycle through states:
-          <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don't Have</span></div>
-        </div>
+        <div class="ux-instruction"></div>
         <div class="symptom-grid" id="reproductiveGrid">
           <div class="symptom-toggle" data-symptom="testicular pain">Testicular pain</div>
           <div class="symptom-toggle" data-symptom="urethral discharge">Urethral discharge</div>
@@ -146,11 +195,16 @@
 
     <!-- Medical History Card -->
     <div class="card" data-grid="historyGrid">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Medical History</h3><span class="state-counters"><span class="state-chip have" data-count-have="0">0 have</span><span class="state-chip donthave" data-count-no="0">0 don't</span></span><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Medical History</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="ux-instruction">Tap symptoms to cycle through states:
-          <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don't Have</span></div>
-        </div>
+        <div class="ux-instruction"></div>
         <div class="symptom-grid" id="historyGrid">
           <div class="symptom-toggle" data-symptom="irritable bowel disease">IBS</div>
           <div class="symptom-toggle" data-symptom="inflammatory bowel disease">IBD</div>
@@ -175,31 +229,52 @@
 
     <!-- Medications & Lifestyle Card -->
     <div class="card">
-      <div class="card-header" onclick="toggleCard(this)"><h3>Medications & Lifestyle</h3><span class="card-icon">▼</span></div>
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>Medications & Lifestyle</h3>
+        <span class="card-icon">▼</span>
+      </div>
       <div class="card-content">
-        <div class="form-group"><label>Current medications</label><input type="text" id="currentMeds" placeholder="List all current medications..." /></div>
-        <div class="form-group"><label>Drug allergies</label><input type="text" id="drugAllergies" placeholder="List any drug allergies and reactions..." /></div>
-        <div class="form-group"><label>Other medical conditions</label><input type="text" id="medicalConditions" placeholder="Any other conditions..." /></div>
-        <div class="form-group"><label>Surgical history</label><input type="text" id="surgicalHistory" placeholder="Previous surgeries and dates..." /></div>
-        <div class="form-group"><label>Response to previous treatments</label><input type="text" id="prevResponse" placeholder="Did previous treatments work?" /></div>
-        <div class="form-group"><label>Smoking history</label><input type="text" id="smokingHistory" placeholder="Cigarettes per day, years..." /></div>
-        <div class="form-group"><label>Alcohol use</label><input type="text" id="alcoholHistory" placeholder="Drinks per week..." /></div>
-        <div class="form-group"><label>Recreational drugs</label><input type="text" id="drugUse" placeholder="Type and frequency..." /></div>
-        <div class="form-group"><label>Expectations from consultation</label><textarea id="Expectations" placeholder="Expectations from consultation..."></textarea></div>
+        <div class="form-group">
+          <label>Current medications</label>
+          <input type="text" id="Currently taking -" placeholder="List all current medications..." />
+        </div>
+        <div class="form-group">
+          <label>Drug allergies</label>
+          <input type="text" id="Drug Allergies -" placeholder="List any drug allergies and reactions..." />
+        </div>
+        <div class="form-group">
+          <label>Other medical conditions</label>
+          <input type="text" id="Past Medical History -" placeholder="Any other conditions..." />
+        </div>
+        <div class="form-group">
+          <label>Surgical history</label>
+          <input type="text" id="Past Surgical History -" placeholder="Previous surgeries and dates..." />
+        </div>
+        <div class="form-group">
+          <label>Response to previous treatments</label>
+          <input type="text" id=" Response to previous treatments or interventions -" placeholder="Did previous treatments work?" />
+        </div>
+        <div class="form-group">
+          <label>Smoking history</label>
+          <input type="text" id="Smoking History -" placeholder="Cigarettes per day, years..." />
+        </div>
+        <div class="form-group">
+          <label>Alcohol use</label>
+          <input type="text" id="Alcohol History -" placeholder="Drinks per week..." />
+        </div>
+        <div class="form-group">
+          <label>Recreational drugs</label>
+          <input type="text" id="Recreational drug use -" placeholder="Type and frequency..." />
+        </div>
+        <div class="form-group">
+          <label>Expectations from consultation</label>
+          <textarea id="Expectations" placeholder="What are you hoping to achieve from this consultation?"></textarea>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Editable output container -->
-  <div id="output-container" style="display:none;">
-    <h3 style="margin: 0 0 15px 0; color: #005EB8; font-size: 1.3rem;">Generated Report (Editable)</h3>
-    <textarea id="output-text" placeholder="Your generated report will appear here and can be edited..."></textarea>
-    <div id="output-actions" style="display:flex; gap:10px; justify-content:center; margin-top:15px;">
-      <!-- Action buttons will be added here by JavaScript -->
-    </div>
-  </div>
-
-  <!-- Output modal (optional) -->
+  <!-- Enhanced Output Modal -->
   <div class="output-modal" id="outputModal">
     <div class="output-content">
       <div class="output-header">
@@ -207,10 +282,10 @@
         <button class="close-btn" onclick="closeOutput()">&times;</button>
       </div>
       <div class="output-body">
-        <div class="output-text" id="outputText"></div>
-        <div class="output-actions" style="display:flex; gap:10px; justify-content:center; padding-bottom:10px;">
-          <button class="generate-btn" style="border-color:#005EB8" onclick="copyOutput()">Copy Report</button>
-          <button class="generate-btn" style="border-color:#005EB8" onclick="emailOutput()">Email Report</button>
+        <textarea id="outputText" placeholder="Your report will appear here. You can edit it before copying or emailing."></textarea>
+        <div class="output-actions">
+          <button class="action-btn" onclick="copyOutput()">Copy Report</button>
+          <button class="action-btn" onclick="emailOutput()">Email Report</button>
         </div>
       </div>
     </div>
