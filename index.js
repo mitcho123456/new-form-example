@@ -101,9 +101,14 @@ async function generateOutput() {
       
       const fieldLabel = getSmartLabel(ctrl);
       
-      // Format based on control type
+      // Format based on control type and specific field handling
       if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
-        lines.push(capitalizeAndAddFullStop(val.trim()));
+        // Special handling for expectations field
+        if (ctrl.id && ctrl.id.toLowerCase().includes('expectation')) {
+          lines.push(`Expectations of consultation - ${val.trim()}.`);
+        } else {
+          lines.push(capitalizeAndAddFullStop(val.trim()));
+        }
       } else {
         lines.push(`${fieldLabel} - ${val.trim()}`);
       }
@@ -144,10 +149,21 @@ function processSymptomToggles(card) {
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
     const symptomText = toggle.textContent.trim();
+    const isMedication = toggle.classList.contains('medications');
+    const isCondition = toggle.classList.contains('conditions');
+    
     if (toggle.classList.contains('have')) {
-      haveSymptoms.push(symptomText);
+      haveSymptoms.push({
+        text: symptomText,
+        isMedication: isMedication,
+        isCondition: isCondition
+      });
     } else if (toggle.classList.contains('donthave')) {
-      dontHaveSymptoms.push(symptomText);
+      dontHaveSymptoms.push({
+        text: symptomText,
+        isMedication: isMedication,
+        isCondition: isCondition
+      });
     }
   });
   
@@ -167,7 +183,39 @@ function processSymptomToggles(card) {
 }
 
 function formatSymptomList(symptoms, type, isMedicalHistory = false) {
-  // Variety of medical terminology for more natural output
+  // Check if we have medications or conditions
+  const hasMedications = symptoms.some(s => s.isMedication);
+  const hasConditions = symptoms.some(s => s.isCondition);
+  
+  // Handle medications specifically
+  if (hasMedications) {
+    const medicationSymptoms = symptoms.filter(s => s.isMedication);
+    const prefix = type === 'positive' ? 'Has history of taking' : 'Has no history of taking';
+    
+    if (medicationSymptoms.length === 1) {
+      return `${prefix} ${medicationSymptoms[0].text.toLowerCase()}.`;
+    } else {
+      const last = medicationSymptoms.pop();
+      const conjunction = type === 'negative' ? 'or' : 'and';
+      return `${prefix} ${medicationSymptoms.map(s => s.text.toLowerCase()).join(', ')} ${conjunction} ${last.text.toLowerCase()}.`;
+    }
+  }
+  
+  // Handle conditions specifically
+  if (hasConditions) {
+    const conditionSymptoms = symptoms.filter(s => s.isCondition);
+    const prefix = type === 'positive' ? 'Has history of' : 'Has no history of';
+    
+    if (conditionSymptoms.length === 1) {
+      return `${prefix} ${conditionSymptoms[0].text.toLowerCase()}.`;
+    } else {
+      const last = conditionSymptoms.pop();
+      const conjunction = type === 'negative' ? 'or' : 'and';
+      return `${prefix} ${conditionSymptoms.map(s => s.text.toLowerCase()).join(', ')} ${conjunction} ${last.text.toLowerCase()}.`;
+    }
+  }
+  
+  // Original symptom formatting for regular symptoms
   const positiveStarters = [
     'Reports', 'Presents with', 'Experiencing', 'Complains of', 
     'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
@@ -190,6 +238,9 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
     'No previous diagnosis of', 'Never had'
   ];
   
+  // Extract text for formatting
+  const symptomTexts = symptoms.map(s => s.text);
+  
   // Intelligently select starter based on context
   let starter = '';
   if (isMedicalHistory) {
@@ -201,16 +252,16 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
     }
   } else if (type === 'positive') {
     // Use different starters based on symptom type and count
-    if (symptoms.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
+    if (symptomTexts.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
       starter = selectFromArray(['Complains of', 'Reports', 'Describes', 'Experiencing']);
-    } else if (symptoms.length > 3) {
+    } else if (symptomTexts.length > 3) {
       starter = selectFromArray(['Presents with', 'Experiencing', 'Reports']);
     } else {
       starter = selectFromArray(positiveStarters);
     }
   } else {
     // Select negative starter based on context
-    if (symptoms.length === 1) {
+    if (symptomTexts.length === 1) {
       starter = selectFromArray(['Denies', 'Negative for', 'No', 'Reports no']);
     } else {
       starter = selectFromArray(negativeStarters);
@@ -218,7 +269,7 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   }
   
   // Clean up symptom names for better grammar
-  const cleanedSymptoms = symptoms.map(s => {
+  const cleanedSymptoms = symptomTexts.map(s => {
     let cleaned = s.toLowerCase();
     
     // Handle special cases for negative phrasing
@@ -403,7 +454,7 @@ function setAria(el) {
   el.setAttribute('data-state', state);
   el.setAttribute('role', 'button');
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-  el.setAttribute('aria-label', `${el.textContent.trim()} – ${state.replace('-', ' ')}`);
+  el.setAttribute('aria-label', `${el.textContent.trim()} — ${state.replace('-', ' ')}`);
 }
 
 function updateCounters(card) {
