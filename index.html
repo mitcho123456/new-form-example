@@ -7,7 +7,6 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Hidden form container for JS compatibility -->
   <form id="symptomForm" style="display:none;"></form>
 
   <div class="header">
@@ -22,245 +21,213 @@
   </div>
 
   <div class="dashboard" id="dashboard">
-
-    <!-- Image Card -->
-    <div class="card">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>About</h3>
-        <span class="card-icon">▼</span>
-      </div>
-      <div class="card-content" style="text-align:center;">
-        <img src="https://checksymptoms.co.uk/wp-content/uploads/2024/07/abdo-pain-kid.webp" alt="Abdominal pain in children" style="max-width:100%;border-radius:10px;">
-      </div>
-    </div>
-
+    
     <!-- Initial Information Card -->
-    <div class="card">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Initial Information</h3>
-        <span class="card-icon">▼</span>
+    <div class="card" id="initial-info-card">
+      <div class="card-header">
+        <h2>Initial Information</h2>
       </div>
       <div class="card-content">
         <div class="form-group">
-          <label>When did the symptoms start and how long have they been going on?</label>
-          <textarea id="description" placeholder="Describe onset and duration..."></textarea>
+          <label for="description">When did your symptoms start and how long have they been going on for?</label>
+          <textarea id="description" rows="4" cols="70"></textarea>
         </div>
       </div>
     </div>
 
     <!-- Pain Assessment Card -->
-    <div class="card">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Pain Assessment</h3>
-        <span class="card-icon">▼</span>
+    <div class="card" id="pain-assessment-card">
+      <div class="card-header">
+        <h2>Pain Assessment</h2>
       </div>
       <div class="card-content">
         <div class="form-group">
-          <label>Pain location</label>
-          <input type="text" id="Pain located in" placeholder="Where is the pain?" />
+          <label for="Pain located in">Where is the pain located</label>
+          <input id="Pain located in" type="text"/>
         </div>
         <div class="form-group">
-          <label>Pain radiation</label>
-          <input type="text" id="Radiates to" placeholder="Does it spread elsewhere?" />
+          <label for="Radiates to">Does the pain radiate to any other areas</label>
+          <input id="Radiates to" type="text"/>
         </div>
         <div class="form-group">
-          <label>Pain character</label>
-          <input type="text" id="Character of pain is" placeholder="Sharp, dull, cramping..." />
+          <label for="Character of pain is">How would you describe the character of the pain</label>
+          <input id="Character of pain is" type="text"/>
         </div>
         <div class="form-group">
-          <label>Associated factors</label>
-          <input type="text" id="Pain is associated with" placeholder="Meals, movement..." />
+          <label for="Pain is associated with">Are there any factors or activities that seem to be associated with the pain</label>
+          <input id="Pain is associated with" type="text"/>
         </div>
         <div class="form-group">
-          <label>What helps?</label>
-          <input type="text" id="Alleviated by" placeholder="Rest, heat, medication..." />
+          <label for="Alleviated by">What provides relief from the pain</label>
+          <input id="Alleviated by" type="text"/>
         </div>
         <div class="form-group">
-          <label>What makes it worse?</label>
-          <input type="text" id="Pain is exacerbated by" placeholder="Movement, eating..." />
+          <label for="Pain is exacerbated by">What makes the pain worse</label>
+          <input id="Pain is exacerbated by" type="text"/>
         </div>
         <div class="form-group">
-          <label>Pain severity (1-10)</label>
-          <input type="number" id="Pain severity -" min="1" max="10" />
-        </div>
-      </div>
-    </div>
-
-    <!-- General Symptoms Card 1 -->
-    <div class="card" data-grid="generalSymptomsGrid1">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>General Symptoms (1)</h3>
-        <span class="state-counters">
-          <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
-      </div>
-      <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="generalSymptomsGrid1">
-          <div class="symptom-toggle" data-symptom="Recurring on specific days of the week">Recurring on specific days of the week</div>
-          <div class="symptom-toggle" data-symptom="Nausea">Nausea</div>
-          <div class="symptom-toggle" data-symptom="Vomiting">Vomiting</div>
-          <div class="symptom-toggle" data-symptom="Diarrhea">Diarrhea</div>
-          <div class="symptom-toggle" data-symptom="Constipation">Constipation</div>
-          <div class="symptom-toggle" data-symptom="Colicky pain">Colicky pain</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- General Symptoms Card 2 -->
-    <div class="card" data-grid="generalSymptomsGrid2">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>General Symptoms (2)</h3>
-        <span class="state-counters">
-          <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
-      </div>
-      <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="generalSymptomsGrid2">
-          <div class="symptom-toggle" data-symptom="Frequent urination">Frequent urination</div>
-          <div class="symptom-toggle" data-symptom="Bloating">Bloating</div>
-          <div class="symptom-toggle" data-symptom="Loss of appetite">Loss of appetite</div>
-          <div class="symptom-toggle" data-symptom="Abdominal tenderness">Abdominal tenderness</div>
-          <div class="symptom-toggle" data-symptom="Groin swelling">Groin swelling</div>
-          <div class="symptom-toggle" data-symptom="Scrotum swelling">Scrotum swelling</div>
-          <div class="symptom-toggle" data-symptom="Cough">Cough</div>
-          <div class="symptom-toggle" data-symptom="Breathing difficulty">Breathing difficulty</div>
+          <label for="Pain severity -">On a scale of 1 to 10, how would you rate the severity of the pain</label>
+          <input id="Pain severity -" type="text"/>
         </div>
       </div>
     </div>
 
     <!-- Red Flag Symptoms Card -->
-    <div class="card red-flag-card" data-grid="redFlagGrid">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>⚠️ Red Flag Symptoms</h3>
-        <span class="state-counters">
+    <div class="card" id="red-flag-card">
+      <div class="card-header">
+        <h2>Red Flag Symptoms</h2>
+        <div class="card-counter">
           <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
+          <span class="state-chip absent" data-count-absent="0">0 absent</span>
+        </div>
       </div>
       <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="redFlagGrid">
-          <div class="symptom-toggle" data-symptom="Pain wakes the child from sleep">Pain wakes from sleep</div>
-          <div class="symptom-toggle" data-symptom="Vomiting blood">Vomiting blood</div>
-          <div class="symptom-toggle" data-symptom="Bilious vomiting">Bilious vomiting</div>
-          <div class="symptom-toggle" data-symptom="Refusing to eat">Refusing to eat</div>
-          <div class="symptom-toggle" data-symptom="Changes in bowel habits">Changes in bowel habits</div>
-          <div class="symptom-toggle" data-symptom="Yellow skin">Yellow skin</div>
-          <div class="symptom-toggle" data-symptom="Pale stools">Pale stools</div>
-          <div class="symptom-toggle" data-symptom="Testicular pain">Testicular pain</div>
-          <div class="symptom-toggle" data-symptom="Testicular swelling">Testicular swelling</div>
-          <div class="symptom-toggle" data-symptom="Unexplained weight loss">Unexplained weight loss</div>
-          <div class="symptom-toggle" data-symptom="Irritability">Irritability</div>
-        </div>
+        <div class="symptom-toggle" data-symptom="Pain wakes the child from sleep">Pain wakes my child from sleep</div>
+        <div class="symptom-toggle" data-symptom="Vomiting blood">Vomiting blood</div>
+        <div class="symptom-toggle" data-symptom="Bilious vomiting">Bilious vomiting</div>
+        <div class="symptom-toggle" data-symptom="Refusing to eat">Refusing to eat</div>
+        <div class="symptom-toggle" data-symptom="Changes in bowel habits">Changes in bowel habits</div>
+        <div class="symptom-toggle" data-symptom="Yellow skin">Yellow skin</div>
+        <div class="symptom-toggle" data-symptom="Pale stools">Pale stools</div>
+        <div class="symptom-toggle" data-symptom="Testicular pain">Testicular pain</div>
+        <div class="symptom-toggle" data-symptom="Testicular swelling">Testicular swelling</div>
+        <div class="symptom-toggle" data-symptom="Unexplained weight loss">Unexplained weight loss</div>
+        <div class="symptom-toggle" data-symptom="Irritability">Irritability</div>
       </div>
     </div>
 
-    <!-- Drug History Card -->
-    <div class="card" data-grid="drugHistoryGrid">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Drug History</h3>
-        <span class="state-counters">
+    <!-- Common Symptoms Card -->
+    <div class="card" id="common-symptoms-card">
+      <div class="card-header">
+        <h2>Common Symptoms</h2>
+        <div class="card-counter">
           <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
+          <span class="state-chip absent" data-count-absent="0">0 absent</span>
+        </div>
       </div>
       <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="drugHistoryGrid">
-          <div class="symptom-toggle" data-symptom="NSAIDs">NSAIDs (ibuprofen, aspirin)</div>
-          <div class="symptom-toggle" data-symptom="Antibiotics">Antibiotics</div>
-          <div class="symptom-toggle" data-symptom="Antacids">Antacids</div>
-          <div class="symptom-toggle" data-symptom="Laxatives">Laxatives</div>
-          <div class="symptom-toggle" data-symptom="Chemotherapy drugs">Chemotherapy drugs</div>
+        <div class="symptom-toggle" data-symptom="Recurring on specific days of the week">Recurring on specific days of the week</div>
+        <div class="symptom-toggle" data-symptom="Nausea">Nausea</div>
+        <div class="symptom-toggle" data-symptom="Vomiting">Vomiting</div>
+        <div class="symptom-toggle" data-symptom="Diarrhea">Diarrhea</div>
+        <div class="symptom-toggle" data-symptom="Constipation">Constipation</div>
+        <div class="symptom-toggle" data-symptom="Colicky pain">Colicky pain</div>
+      </div>
+    </div>
+
+    <!-- Additional Symptoms Card -->
+    <div class="card" id="additional-symptoms-card">
+      <div class="card-header">
+        <h2>Additional Symptoms</h2>
+        <div class="card-counter">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip absent" data-count-absent="0">0 absent</span>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="symptom-toggle" data-symptom="Frequent urination">Frequent urination</div>
+        <div class="symptom-toggle" data-symptom="Bloating">Bloating</div>
+        <div class="symptom-toggle" data-symptom="Loss of appetite">Loss of appetite</div>
+        <div class="symptom-toggle" data-symptom="Abdominal tenderness">Abdominal tenderness</div>
+        <div class="symptom-toggle" data-symptom="Groin swelling">Groin swelling</div>
+        <div class="symptom-toggle" data-symptom="Scrotum swelling">Scrotum swelling</div>
+        <div class="symptom-toggle" data-symptom="Cough">Cough</div>
+        <div class="symptom-toggle" data-symptom="Breathing difficulty">Breathing difficulty</div>
+      </div>
+    </div>
+
+    <!-- Medications & Lifestyle Card -->
+    <div class="card" id="medications-card">
+      <div class="card-header">
+        <h2>Medications & Lifestyle</h2>
+        <div class="card-counter">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip absent" data-count-absent="0">0 absent</span>
+        </div>
+      </div>
+      <div class="card-content">
+        <div class="symptom-toggle medications" data-symptom="NSAIDs">NSAIDs (Painkillers like ibuprofen or aspirin)</div>
+        <div class="symptom-toggle medications" data-symptom="Antibiotics">Antibiotics</div>
+        <div class="symptom-toggle medications" data-symptom="Antacids">Antacids</div>
+        <div class="symptom-toggle medications" data-symptom="Laxatives">Laxatives</div>
+        <div class="symptom-toggle medications" data-symptom="Chemotherapy drugs">Chemotherapy drugs</div>
+        
+        <div class="form-group">
+          <label for="Currently taking -">Please list any medications you(the patient) are on below</label>
+          <input id="Currently taking -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for="Drug Allergies -">Do you(the patient) have any drug allergies? If so, please tell us the medication and the type of allergic reaction you get.</label>
+          <input id="Drug Allergies -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for="Smoking History -">Do you(the patient) smoke? If so how many cigarettes per day and for how many years have you been smoking?</label>
+          <input id="Smoking History -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for="Alcohol History -">Do you(the patient) drink alcohol? If so, how many of your preferred beverage do you take per week?</label>
+          <input id="Alcohol History -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for="Recreational drug use -">Do you(the patient) take any recreational drugs? (e.g. cannabis, cocaine, heroin, etc) If so, how often do you use your preferred drug per week?</label>
+          <input id="Recreational drug use -" type="text"/>
         </div>
       </div>
     </div>
 
     <!-- Medical History Card -->
-    <div class="card" data-grid="medicalHistoryGrid">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Medical History</h3>
-        <span class="state-counters">
+    <div class="card" id="medical-history-card">
+      <div class="card-header">
+        <h2>Medical History</h2>
+        <div class="card-counter">
           <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
+          <span class="state-chip absent" data-count-absent="0">0 absent</span>
+        </div>
       </div>
       <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="medicalHistoryGrid">
-          <div class="symptom-toggle" data-symptom="Constipation">Constipation</div>
-          <div class="symptom-toggle" data-symptom="Infant colic">Infant colic</div>
-          <div class="symptom-toggle" data-symptom="Gastroenteritis">Gastroenteritis</div>
-          <div class="symptom-toggle" data-symptom="Urinary tract infection">Urinary tract infection</div>
-          <div class="symptom-toggle" data-symptom="Appendicitis">Appendicitis</div>
-          <div class="symptom-toggle" data-symptom="Functional/IBS">Functional/IBS</div>
-          <div class="symptom-toggle" data-symptom="Stress/Malingering">Stress/Malingering</div>
-          <div class="symptom-toggle" data-symptom="Gastritis/GORD/Peptic ulcer">Gastritis/GORD/Peptic ulcer</div>
-          <div class="symptom-toggle" data-symptom="Mesenteric adenitis">Mesenteric adenitis</div>
-          <div class="symptom-toggle" data-symptom="CMPI (Cow's Milk Protein Intolerance)">CMPI (Cow’s Milk Protein Intolerance)</div>
-          <div class="symptom-toggle" data-symptom="Muscular strain">Muscular strain</div>
-          <div class="symptom-toggle" data-symptom="Sickle cell disease">Sickle cell disease</div>
+        <div class="symptom-toggle conditions" data-symptom="Constipation">Constipation</div>
+        <div class="symptom-toggle conditions" data-symptom="Infant colic">Infant colic</div>
+        <div class="symptom-toggle conditions" data-symptom="Gastroenteritis">Gastroenteritis</div>
+        <div class="symptom-toggle conditions" data-symptom="Urinary tract infection">Urinary tract infection</div>
+        <div class="symptom-toggle conditions" data-symptom="Appendicitis">Appendicitis</div>
+        <div class="symptom-toggle conditions" data-symptom="Functional/IBS">Functional/IBS</div>
+        <div class="symptom-toggle conditions" data-symptom="Stress/Malingering">Stress/Malingering</div>
+        <div class="symptom-toggle conditions" data-symptom="Gastritis/GORD/Peptic ulcer">Gastritis/GORD/Peptic ulcer</div>
+        <div class="symptom-toggle conditions" data-symptom="Mesenteric adenitis">Mesenteric adenitis</div>
+        <div class="symptom-toggle conditions" data-symptom="CMPI (Cow's Milk Protein Intolerance)">CMPI (Cow's Milk Protein Intolerance)</div>
+        <div class="symptom-toggle conditions" data-symptom="Muscular strain">Muscular strain</div>
+        <div class="symptom-toggle conditions" data-symptom="Sickle cell disease">Sickle cell disease</div>
+        
+        <div class="form-group">
+          <label for="Past Medical History -">Do you(the patient) have any other underlying medical conditions your healthcare provider needs to know about?</label>
+          <input id="Past Medical History -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for="Past Surgical History -">Have you(the patient) ever undergone any surgery? If yes, what surgery was this and when was it done?</label>
+          <input id="Past Surgical History -" type="text"/>
+        </div>
+        <div class="form-group">
+          <label for=" Response to previous treatments or interventions -">What was the response to previous treatments or interventions? (Did it work or not?)</label>
+          <input id=" Response to previous treatments or interventions -" type="text"/>
         </div>
       </div>
     </div>
 
-    <!-- Medications & Lifestyle Card -->
-    <div class="card">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Medications & Lifestyle</h3>
-        <span class="card-icon">▼</span>
+    <!-- Expectations of Consultation Card -->
+    <div class="card" id="consultation-card">
+      <div class="card-header">
+        <h2>Expectations of Consultation</h2>
       </div>
       <div class="card-content">
         <div class="form-group">
-          <label>Current medications</label>
-          <input type="text" id="Currently taking -" placeholder="List all current medications..." />
-        </div>
-        <div class="form-group">
-          <label>Drug allergies</label>
-          <input type="text" id="Drug Allergies -" placeholder="List any drug allergies and reactions..." />
-        </div>
-        <div class="form-group">
-          <label>Other medical conditions</label>
-          <input type="text" id="Past Medical History -" placeholder="Any other conditions..." />
-        </div>
-        <div class="form-group">
-          <label>Surgical history</label>
-          <input type="text" id="Past Surgical History -" placeholder="Previous surgeries and dates..." />
-        </div>
-        <div class="form-group">
-          <label>Response to previous treatments</label>
-          <input type="text" id=" Response to previous treatments or interventions -" placeholder="Did previous treatments work?" />
-        </div>
-        <div class="form-group">
-          <label>Smoking history</label>
-          <input type="text" id="Smoking History -" placeholder="Cigarettes per day, years..." />
-        </div>
-        <div class="form-group">
-          <label>Alcohol use</label>
-          <input type="text" id="Alcohol History -" placeholder="Drinks per week..." />
-        </div>
-        <div class="form-group">
-          <label>Recreational drugs</label>
-          <input type="text" id="Recreational drug use -" placeholder="Type and frequency..." />
-        </div>
-        <div class="form-group">
-          <label>Other relevant details or requests for the doctor</label>
-          <textarea id="further-details" placeholder="Any other relevant details or requests for the doctor?"></textarea>
+          <label for="further-details">Any other relevant details or requests for the doctor?</label>
+          <textarea id="further-details" rows="4" cols="70"></textarea>
         </div>
       </div>
     </div>
+
   </div>
 
-  <!-- Enhanced Output Modal -->
   <div class="output-modal" id="outputModal">
     <div class="output-content">
       <div class="output-header">
@@ -268,18 +235,13 @@
         <button class="close-btn" onclick="closeOutput()">&times;</button>
       </div>
       <div class="output-body">
-        <textarea id="outputText" placeholder="Your report will appear here. You can edit it before copying or emailing."></textarea>
+        <textarea id="outputText" placeholder="Your report will appear here..."></textarea>
         <div class="output-actions">
           <button class="action-btn" onclick="copyOutput()">Copy Report</button>
           <button class="action-btn" onclick="emailOutput()">Email Report</button>
         </div>
       </div>
     </div>
-  </div>
-
-  <div class="source-note">
-    <hr>
-    <p>Saved from <a href="https://checksymptoms.co.uk/p-abdominal-pain-in-children/">https://checksymptoms.co.uk/p-abdominal-pain-in-children/</a></p>
   </div>
 
   <script src="index.js"></script>
