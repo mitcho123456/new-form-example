@@ -140,34 +140,138 @@ function processSymptomToggles(card) {
   
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
+    const symptomText = toggle.textContent.trim();
     if (toggle.classList.contains('have')) {
-      haveSymptoms.push(toggle.textContent.trim());
+      haveSymptoms.push(symptomText);
     } else if (toggle.classList.contains('donthave')) {
-      dontHaveSymptoms.push(toggle.textContent.trim());
+      dontHaveSymptoms.push(symptomText);
     }
   });
   
   // Format "have" symptoms
   if (haveSymptoms.length > 0) {
-    if (haveSymptoms.length === 1) {
-      results.push(`Reports ${haveSymptoms[0].toLowerCase()}.`);
-    } else {
-      const last = haveSymptoms.pop();
-      results.push(`Reports ${haveSymptoms.join(', ').toLowerCase()} and ${last.toLowerCase()}.`);
-    }
+    const formatted = formatSymptomList(haveSymptoms, 'positive');
+    results.push(formatted);
   }
   
-  // Format "don't have" symptoms
+  // Format "don't have" symptoms  
   if (dontHaveSymptoms.length > 0) {
-    if (dontHaveSymptoms.length === 1) {
-      results.push(`Reports no ${dontHaveSymptoms[0].toLowerCase()}.`);
-    } else {
-      const last = dontHaveSymptoms.pop();
-      results.push(`Reports no ${dontHaveSymptoms.join(', ').toLowerCase()} or ${last.toLowerCase()}.`);
-    }
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative');
+    results.push(formatted);
   }
   
   return results;
+}
+
+function formatSymptomList(symptoms, type) {
+  // Variety of medical terminology for more natural output
+  const positiveStarters = [
+    'Reports', 'Presents with', 'Experiencing', 'Complains of', 
+    'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
+    'Positive for', 'Affirms', 'Acknowledges', 'Mentions'
+  ];
+  
+  const negativeStarters = [
+    'Denies', 'Negative for', 'No', 'Does not have', 'Reports no',
+    'Free of', 'Clear of', 'Does not complain of', 'Does not report',
+    'No history of', 'Unremarkable for', 'Does not admit to', 'No symptoms of'
+  ];
+  
+  // Intelligently select starter based on context
+  let starter = '';
+  if (type === 'positive') {
+    // Use different starters based on symptom type and count
+    if (symptoms.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
+      starter = selectFromArray(['Complains of', 'Reports', 'Describes', 'Experiencing']);
+    } else if (symptoms.some(s => s.toLowerCase().includes('history') || s.toLowerCase().includes('surgery'))) {
+      starter = selectFromArray(['Has', 'Reports', 'Positive for', 'Admits to']);
+    } else if (symptoms.length > 3) {
+      starter = selectFromArray(['Presents with', 'Experiencing', 'Reports']);
+    } else {
+      starter = selectFromArray(positiveStarters);
+    }
+  } else {
+    // Select negative starter based on context
+    if (symptoms.some(s => s.toLowerCase().includes('history') || s.toLowerCase().includes('surgery'))) {
+      starter = selectFromArray(['No history of', 'Denies', 'Negative for']);
+    } else if (symptoms.length === 1) {
+      starter = selectFromArray(['Denies', 'Negative for', 'No', 'Reports no']);
+    } else {
+      starter = selectFromArray(negativeStarters);
+    }
+  }
+  
+  // Clean up symptom names for better grammar
+  const cleanedSymptoms = symptoms.map(s => {
+    let cleaned = s.toLowerCase();
+    
+    // Handle special cases for negative phrasing
+    if (type === 'negative') {
+      // Remove "Can't" or "Cannot" at the beginning for negative context
+      cleaned = cleaned.replace(/^can't\s+/i, '').replace(/^cannot\s+/i, '');
+      
+      // Convert negative symptoms to positive form for "no" prefix
+      if (cleaned.includes('can\'t pass')) {
+        cleaned = cleaned.replace('can\'t pass', 'inability to pass');
+      }
+      if (cleaned === 'pass stool/gas') {
+        cleaned = 'ability to pass stool or gas';
+      }
+      if (cleaned === 'pass stool') {
+        cleaned = 'ability to pass stool';
+      }
+      if (cleaned === 'pass gas') {
+        cleaned = 'ability to pass gas';
+      }
+    }
+    
+    return cleaned;
+  });
+  
+  // Format the sentence based on the starter phrase
+  const starterLower = starter.toLowerCase();
+  
+  // Handle different starter patterns
+  if (starterLower === 'no' || starterLower === 'negative for' || starterLower === 'free of' || 
+      starterLower === 'clear of' || starterLower === 'unremarkable for') {
+    // These starters work directly with symptom list
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      if (type === 'negative') {
+        return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
+      } else {
+        return `${starter} ${cleanedSymptoms.join(', ')} and ${last}.`;
+      }
+    }
+  } else if (starterLower.includes('does not') || starterLower.includes('reports no') || 
+             starterLower.includes('no history') || starterLower.includes('no symptoms')) {
+    // These need special handling
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
+    }
+  } else {
+    // Standard format for most starters
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      const conjunction = (type === 'negative' && !starterLower.includes('denies')) ? 'or' : 
+                          (type === 'negative' ? 'or' : 'and');
+      return `${starter} ${cleanedSymptoms.join(', ')} ${conjunction} ${last}.`;
+    }
+  }
+}
+
+// Helper function to randomly select from array for variety
+function selectFromArray(arr) {
+  // Use a semi-random selection that considers position in output for variety
+  const index = Math.floor(Math.random() * arr.length);
+  return arr[index];
 }
 
 // Copy output function
