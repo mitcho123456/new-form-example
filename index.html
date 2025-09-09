@@ -3,26 +3,37 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abdominal Pain </title>
+  <title>Abdominal Pain In Children</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Hidden form container -->
+  <!-- Hidden form container for JS compatibility -->
   <form id="symptomForm" style="display:none;"></form>
 
   <div class="header">
     <div class="header-content">
-      <h1>Abdominal Pain </h1>
+      <h1>Abdominal Pain In Children</h1>
       <button class="generate-btn" type="button" onclick="generateOutput()">Generate Report</button>
     </div>
   </div>
 
-  <!-- Top note -->
   <div style="max-width:1200px;margin:12px auto 0;padding:0 20px;">
     <div class="ux-instruction" role="note" aria-live="polite"></div>
   </div>
 
   <div class="dashboard" id="dashboard">
+
+    <!-- Image Card -->
+    <div class="card">
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>About</h3>
+        <span class="card-icon">▼</span>
+      </div>
+      <div class="card-content" style="text-align:center;">
+        <img src="https://checksymptoms.co.uk/wp-content/uploads/2024/07/abdo-pain-kid.webp" alt="Abdominal pain in children" style="max-width:100%;border-radius:10px;">
+      </div>
+    </div>
+
     <!-- Initial Information Card -->
     <div class="card">
       <div class="card-header" onclick="toggleCard(this)">
@@ -31,12 +42,8 @@
       </div>
       <div class="card-content">
         <div class="form-group">
-          <label>What are and when did the symptoms start?</label>
+          <label>When did the symptoms start and how long have they been going on?</label>
           <textarea id="description" placeholder="Describe onset and duration..."></textarea>
-        </div>
-        <div class="form-group">
-          <label>Last menstrual period</label>
-          <input type="text" id="Last menstrual period-" placeholder="e.g., 2 weeks ago" />
         </div>
       </div>
     </div>
@@ -44,7 +51,7 @@
     <!-- Pain Assessment Card -->
     <div class="card">
       <div class="card-header" onclick="toggleCard(this)">
-        <h3>Pain Details</h3>
+        <h3>Pain Assessment</h3>
         <span class="card-icon">▼</span>
       </div>
       <div class="card-content">
@@ -79,10 +86,58 @@
       </div>
     </div>
 
+    <!-- General Symptoms Card 1 -->
+    <div class="card" data-grid="generalSymptomsGrid1">
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>General Symptoms (1)</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
+      <div class="card-content">
+        <div class="ux-instruction"></div>
+        <div class="symptom-grid" id="generalSymptomsGrid1">
+          <div class="symptom-toggle" data-symptom="Recurring on specific days of the week">Recurring on specific days of the week</div>
+          <div class="symptom-toggle" data-symptom="Nausea">Nausea</div>
+          <div class="symptom-toggle" data-symptom="Vomiting">Vomiting</div>
+          <div class="symptom-toggle" data-symptom="Diarrhea">Diarrhea</div>
+          <div class="symptom-toggle" data-symptom="Constipation">Constipation</div>
+          <div class="symptom-toggle" data-symptom="Colicky pain">Colicky pain</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- General Symptoms Card 2 -->
+    <div class="card" data-grid="generalSymptomsGrid2">
+      <div class="card-header" onclick="toggleCard(this)">
+        <h3>General Symptoms (2)</h3>
+        <span class="state-counters">
+          <span class="state-chip have" data-count-have="0">0 have</span>
+          <span class="state-chip donthave" data-count-no="0">0 don't</span>
+        </span>
+        <span class="card-icon">▼</span>
+      </div>
+      <div class="card-content">
+        <div class="ux-instruction"></div>
+        <div class="symptom-grid" id="generalSymptomsGrid2">
+          <div class="symptom-toggle" data-symptom="Frequent urination">Frequent urination</div>
+          <div class="symptom-toggle" data-symptom="Bloating">Bloating</div>
+          <div class="symptom-toggle" data-symptom="Loss of appetite">Loss of appetite</div>
+          <div class="symptom-toggle" data-symptom="Abdominal tenderness">Abdominal tenderness</div>
+          <div class="symptom-toggle" data-symptom="Groin swelling">Groin swelling</div>
+          <div class="symptom-toggle" data-symptom="Scrotum swelling">Scrotum swelling</div>
+          <div class="symptom-toggle" data-symptom="Cough">Cough</div>
+          <div class="symptom-toggle" data-symptom="Breathing difficulty">Breathing difficulty</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Red Flag Symptoms Card -->
     <div class="card red-flag-card" data-grid="redFlagGrid">
       <div class="card-header" onclick="toggleCard(this)">
-        <h3>⚠️ Urgent Warning Signs</h3>
+        <h3>⚠️ Red Flag Symptoms</h3>
         <span class="state-counters">
           <span class="state-chip have" data-count-have="0">0 have</span>
           <span class="state-chip donthave" data-count-no="0">0 don't</span>
@@ -92,29 +147,25 @@
       <div class="card-content">
         <div class="ux-instruction"></div>
         <div class="symptom-grid" id="redFlagGrid">
-          <div class="symptom-toggle" data-symptom="rigid abdomen">Rigid abdomen</div>
-          <div class="symptom-toggle" data-symptom="bloody stool">Bloody stool</div>
-          <div class="symptom-toggle" data-symptom="dark vomitus">Dark vomit</div>
-          <div class="symptom-toggle" data-symptom="blood in vomitus">Blood in vomit</div>
-          <div class="symptom-toggle" data-symptom="unexplained weight loss">Weight loss</div>
-          <div class="symptom-toggle" data-symptom="jaundice">Jaundice</div>
-          <div class="symptom-toggle" data-symptom="abdominal swelling">Abdominal swelling</div>
-          <div class="symptom-toggle" data-symptom="inability to pass stool">Can't pass stool</div>
-          <div class="symptom-toggle" data-symptom="inability to pass stool and gas">Can't pass stool/gas</div>
-          <div class="symptom-toggle" data-symptom="chest pain">Chest pain</div>
-          <div class="symptom-toggle" data-symptom="shortness of breath">Shortness of breath</div>
-          <div class="symptom-toggle" data-symptom="pain following an injury">Pain after injury</div>
-          <div class="symptom-toggle" data-symptom="cold, clammy skin">Cold, clammy skin</div>
-          <div class="symptom-toggle" data-symptom="shallow breathing">Shallow breathing</div>
-          <div class="symptom-toggle" data-symptom="rapid heartbeat">Rapid heartbeat</div>
+          <div class="symptom-toggle" data-symptom="Pain wakes the child from sleep">Pain wakes from sleep</div>
+          <div class="symptom-toggle" data-symptom="Vomiting blood">Vomiting blood</div>
+          <div class="symptom-toggle" data-symptom="Bilious vomiting">Bilious vomiting</div>
+          <div class="symptom-toggle" data-symptom="Refusing to eat">Refusing to eat</div>
+          <div class="symptom-toggle" data-symptom="Changes in bowel habits">Changes in bowel habits</div>
+          <div class="symptom-toggle" data-symptom="Yellow skin">Yellow skin</div>
+          <div class="symptom-toggle" data-symptom="Pale stools">Pale stools</div>
+          <div class="symptom-toggle" data-symptom="Testicular pain">Testicular pain</div>
+          <div class="symptom-toggle" data-symptom="Testicular swelling">Testicular swelling</div>
+          <div class="symptom-toggle" data-symptom="Unexplained weight loss">Unexplained weight loss</div>
+          <div class="symptom-toggle" data-symptom="Irritability">Irritability</div>
         </div>
       </div>
     </div>
 
-    <!-- Common Symptoms Card -->
-    <div class="card" data-grid="commonGrid">
+    <!-- Drug History Card -->
+    <div class="card" data-grid="drugHistoryGrid">
       <div class="card-header" onclick="toggleCard(this)">
-        <h3>Common Symptoms</h3>
+        <h3>Drug History</h3>
         <span class="state-counters">
           <span class="state-chip have" data-count-have="0">0 have</span>
           <span class="state-chip donthave" data-count-no="0">0 don't</span>
@@ -123,78 +174,18 @@
       </div>
       <div class="card-content">
         <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="commonGrid">
-          <div class="symptom-toggle" data-symptom="fever">Fever</div>
-          <div class="symptom-toggle" data-symptom="loss of appetite">Loss of appetite</div>
-          <div class="symptom-toggle" data-symptom="nausea">Nausea</div>
-          <div class="symptom-toggle" data-symptom="vomiting">Vomiting</div>
-          <div class="symptom-toggle" data-symptom="bloating">Bloating</div>
-          <div class="symptom-toggle" data-symptom="back pain">Back pain</div>
-          <div class="symptom-toggle" data-symptom="diarrhea">Diarrhea</div>
-          <div class="symptom-toggle" data-symptom="constipation">Constipation</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Bowel & Urinary Symptoms Card -->
-    <div class="card" data-grid="additionalGrid">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Bowel & Urinary Symptoms</h3>
-        <span class="state-counters">
-          <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
-      </div>
-      <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="additionalGrid">
-          <div class="symptom-toggle" data-symptom="pale stool">Pale stool</div>
-          <div class="symptom-toggle" data-symptom="not passing gas">Can't pass gas</div>
-          <div class="symptom-toggle" data-symptom="abdominal distension">Abdominal distension</div>
-          <div class="symptom-toggle" data-symptom="hematuria">Blood in urine</div>
-          <div class="symptom-toggle" data-symptom="dysuria">Pain urinating</div>
-          <div class="symptom-toggle" data-symptom="frequency">Frequent urination</div>
-          <div class="symptom-toggle" data-symptom="foul smelling urine">Smelly urine</div>
-          <div class="symptom-toggle" data-symptom="melena">Black, tarry stool</div>
-        </div>
-        <div class="form-group" style="margin-top: 15px;">
-          <label>Additional details</label>
-          <textarea id="further-details" placeholder="Any other bowel or urinary symptoms..."></textarea>
-        </div>
-      </div>
-    </div>
-
-    <!-- Reproductive Health Card -->
-    <div class="card" data-grid="reproductiveGrid">
-      <div class="card-header" onclick="toggleCard(this)">
-        <h3>Reproductive Health</h3>
-        <span class="state-counters">
-          <span class="state-chip have" data-count-have="0">0 have</span>
-          <span class="state-chip donthave" data-count-no="0">0 don't</span>
-        </span>
-        <span class="card-icon">▼</span>
-      </div>
-      <div class="card-content">
-        <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="reproductiveGrid">
-          <div class="symptom-toggle" data-symptom="testicular pain">Testicular pain</div>
-          <div class="symptom-toggle" data-symptom="urethral discharge">Urethral discharge</div>
-          <div class="symptom-toggle" data-symptom="vaginal discharge">Vaginal discharge</div>
-          <div class="symptom-toggle" data-symptom="dyspareunia">Pain during sex</div>
-          <div class="symptom-toggle" data-symptom="being sexually active">Sexually active</div>
-          <div class="symptom-toggle" data-symptom="using contraception">Using contraception</div>
-          <div class="symptom-toggle" data-symptom="doing a home pregnancy test">Did pregnancy test</div>
-          <div class="symptom-toggle" data-symptom="positive pregnancy test">Positive pregnancy test</div>
-          <div class="symptom-toggle" data-symptom="abdominal pain every time periods begin">Pain with periods</div>
-          <div class="symptom-toggle" data-symptom="vaginal bleeding with clots">Bleeding with clots</div>
-          <div class="symptom-toggle" data-symptom="vaginal bleeding with fetal tissue">Bleeding with tissue</div>
+        <div class="symptom-grid" id="drugHistoryGrid">
+          <div class="symptom-toggle" data-symptom="NSAIDs">NSAIDs (ibuprofen, aspirin)</div>
+          <div class="symptom-toggle" data-symptom="Antibiotics">Antibiotics</div>
+          <div class="symptom-toggle" data-symptom="Antacids">Antacids</div>
+          <div class="symptom-toggle" data-symptom="Laxatives">Laxatives</div>
+          <div class="symptom-toggle" data-symptom="Chemotherapy drugs">Chemotherapy drugs</div>
         </div>
       </div>
     </div>
 
     <!-- Medical History Card -->
-    <div class="card" data-grid="historyGrid">
+    <div class="card" data-grid="medicalHistoryGrid">
       <div class="card-header" onclick="toggleCard(this)">
         <h3>Medical History</h3>
         <span class="state-counters">
@@ -205,24 +196,19 @@
       </div>
       <div class="card-content">
         <div class="ux-instruction"></div>
-        <div class="symptom-grid" id="historyGrid">
-          <div class="symptom-toggle" data-symptom="irritable bowel disease">IBS</div>
-          <div class="symptom-toggle" data-symptom="inflammatory bowel disease">IBD</div>
-          <div class="symptom-toggle" data-symptom="diverticulosis">Diverticulosis</div>
-          <div class="symptom-toggle" data-symptom="pancreatitis">Pancreatitis</div>
-          <div class="symptom-toggle" data-symptom="gallstones">Gallstones</div>
-          <div class="symptom-toggle" data-symptom="appendicitis">Appendicitis</div>
-          <div class="symptom-toggle" data-symptom="abdominal surgery">Abdominal surgery</div>
-          <div class="symptom-toggle" data-symptom="pelvic surgery">Pelvic surgery</div>
-          <div class="symptom-toggle" data-symptom="AAA (Abdominal Aortic Aneurysm)">AAA</div>
-          <div class="symptom-toggle" data-symptom="endometritis">Endometritis</div>
-          <div class="symptom-toggle" data-symptom="ectopic pregnancy">Ectopic pregnancy</div>
-          <div class="symptom-toggle" data-symptom="peptic ulcers">Peptic ulcers</div>
-          <div class="symptom-toggle" data-symptom="diabetes">Diabetes</div>
-          <div class="symptom-toggle" data-symptom="sickle cell disease">Sickle cell</div>
-          <div class="symptom-toggle" data-symptom="kidney stones">Kidney stones</div>
-          <div class="symptom-toggle" data-symptom="ischemic bowel disease">Ischemic bowel</div>
-          <div class="symptom-toggle" data-symptom="food allergy">Food allergy</div>
+        <div class="symptom-grid" id="medicalHistoryGrid">
+          <div class="symptom-toggle" data-symptom="Constipation">Constipation</div>
+          <div class="symptom-toggle" data-symptom="Infant colic">Infant colic</div>
+          <div class="symptom-toggle" data-symptom="Gastroenteritis">Gastroenteritis</div>
+          <div class="symptom-toggle" data-symptom="Urinary tract infection">Urinary tract infection</div>
+          <div class="symptom-toggle" data-symptom="Appendicitis">Appendicitis</div>
+          <div class="symptom-toggle" data-symptom="Functional/IBS">Functional/IBS</div>
+          <div class="symptom-toggle" data-symptom="Stress/Malingering">Stress/Malingering</div>
+          <div class="symptom-toggle" data-symptom="Gastritis/GORD/Peptic ulcer">Gastritis/GORD/Peptic ulcer</div>
+          <div class="symptom-toggle" data-symptom="Mesenteric adenitis">Mesenteric adenitis</div>
+          <div class="symptom-toggle" data-symptom="CMPI (Cow's Milk Protein Intolerance)">CMPI (Cow’s Milk Protein Intolerance)</div>
+          <div class="symptom-toggle" data-symptom="Muscular strain">Muscular strain</div>
+          <div class="symptom-toggle" data-symptom="Sickle cell disease">Sickle cell disease</div>
         </div>
       </div>
     </div>
@@ -267,8 +253,8 @@
           <input type="text" id="Recreational drug use -" placeholder="Type and frequency..." />
         </div>
         <div class="form-group">
-          <label>Expectations from consultation</label>
-          <textarea id="Expectations" placeholder="What are you hoping to achieve from this consultation?"></textarea>
+          <label>Other relevant details or requests for the doctor</label>
+          <textarea id="further-details" placeholder="Any other relevant details or requests for the doctor?"></textarea>
         </div>
       </div>
     </div>
@@ -289,6 +275,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="source-note">
+    <hr>
+    <p>Saved from <a href="https://checksymptoms.co.uk/p-abdominal-pain-in-children/">https://checksymptoms.co.uk/p-abdominal-pain-in-children/</a></p>
   </div>
 
   <script src="index.js"></script>
