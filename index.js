@@ -202,7 +202,7 @@ function generateOutput() {
     // Add expectations
     const expectations = document.getElementById('further-details').value.trim();
     if (expectations) {
-        output.push(`**Expectations:** ${expectations}`);
+        output.push(`Expectations: ${expectations}`);
         output.push('');
     }
     
