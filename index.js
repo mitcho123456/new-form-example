@@ -145,6 +145,7 @@ function processSymptomToggles(card) {
   
   // Check if this is the Medical History card
   const isMedicalHistory = card.getAttribute('data-grid') === 'historyGrid';
+  const isMedications = card.getAttribute('data-grid') === 'medicationsGrid';
   
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
@@ -169,20 +170,20 @@ function processSymptomToggles(card) {
   
   // Format "have" symptoms
   if (haveSymptoms.length > 0) {
-    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory);
+    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory, isMedications);
     results.push(formatted);
   }
   
   // Format "don't have" symptoms  
   if (dontHaveSymptoms.length > 0) {
-    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory);
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory, isMedications);
     results.push(formatted);
   }
   
   return results;
 }
 
-function formatSymptomList(symptoms, type, isMedicalHistory = false) {
+function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedications = false) {
   // Check if we have medications or conditions
   const hasMedications = symptoms.some(s => s.isMedication);
   const hasConditions = symptoms.some(s => s.isCondition);
@@ -190,7 +191,7 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   // Handle medications specifically
   if (hasMedications) {
     const medicationSymptoms = symptoms.filter(s => s.isMedication);
-    const prefix = type === 'positive' ? 'Has history of taking' : 'Has no history of taking';
+    const prefix = type === 'positive' ? 'Has history of using' : 'Has no history of using';
     
     if (medicationSymptoms.length === 1) {
       return `${prefix} ${medicationSymptoms[0].text.toLowerCase()}.`;
