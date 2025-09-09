@@ -138,6 +138,9 @@ function processSymptomToggles(card) {
   const haveSymptoms = [];
   const dontHaveSymptoms = [];
   
+  // Check if this is the Medical History card
+  const isMedicalHistory = card.getAttribute('data-grid') === 'historyGrid';
+  
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
     const symptomText = toggle.textContent.trim();
@@ -150,25 +153,30 @@ function processSymptomToggles(card) {
   
   // Format "have" symptoms
   if (haveSymptoms.length > 0) {
-    const formatted = formatSymptomList(haveSymptoms, 'positive');
+    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory);
     results.push(formatted);
   }
   
   // Format "don't have" symptoms  
   if (dontHaveSymptoms.length > 0) {
-    const formatted = formatSymptomList(dontHaveSymptoms, 'negative');
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory);
     results.push(formatted);
   }
   
   return results;
 }
 
-function formatSymptomList(symptoms, type) {
+function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   // Variety of medical terminology for more natural output
   const positiveStarters = [
     'Reports', 'Presents with', 'Experiencing', 'Complains of', 
     'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
     'Positive for', 'Affirms', 'Acknowledges', 'Mentions'
+  ];
+  
+  const positiveHistoryStarters = [
+    'Has a history of', 'Previous history of', 'Past medical history includes',
+    'History significant for', 'Prior diagnosis of'
   ];
   
   const negativeStarters = [
@@ -177,14 +185,24 @@ function formatSymptomList(symptoms, type) {
     'No history of', 'Unremarkable for', 'Does not admit to', 'No symptoms of'
   ];
   
+  const negativeHistoryStarters = [
+    'No history of', 'No prior history of', 'Denies history of',
+    'No previous diagnosis of', 'Never had'
+  ];
+  
   // Intelligently select starter based on context
   let starter = '';
-  if (type === 'positive') {
+  if (isMedicalHistory) {
+    // Special handling for medical history
+    if (type === 'positive') {
+      starter = selectFromArray(positiveHistoryStarters);
+    } else {
+      starter = selectFromArray(negativeHistoryStarters);
+    }
+  } else if (type === 'positive') {
     // Use different starters based on symptom type and count
     if (symptoms.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
       starter = selectFromArray(['Complains of', 'Reports', 'Describes', 'Experiencing']);
-    } else if (symptoms.some(s => s.toLowerCase().includes('history') || s.toLowerCase().includes('surgery'))) {
-      starter = selectFromArray(['Has', 'Reports', 'Positive for', 'Admits to']);
     } else if (symptoms.length > 3) {
       starter = selectFromArray(['Presents with', 'Experiencing', 'Reports']);
     } else {
@@ -192,9 +210,7 @@ function formatSymptomList(symptoms, type) {
     }
   } else {
     // Select negative starter based on context
-    if (symptoms.some(s => s.toLowerCase().includes('history') || s.toLowerCase().includes('surgery'))) {
-      starter = selectFromArray(['No history of', 'Denies', 'Negative for']);
-    } else if (symptoms.length === 1) {
+    if (symptoms.length === 1) {
       starter = selectFromArray(['Denies', 'Negative for', 'No', 'Reports no']);
     } else {
       starter = selectFromArray(negativeStarters);
@@ -206,7 +222,7 @@ function formatSymptomList(symptoms, type) {
     let cleaned = s.toLowerCase();
     
     // Handle special cases for negative phrasing
-    if (type === 'negative') {
+    if (type === 'negative' && !isMedicalHistory) {
       // Remove "Can't" or "Cannot" at the beginning for negative context
       cleaned = cleaned.replace(/^can't\s+/i, '').replace(/^cannot\s+/i, '');
       
@@ -246,13 +262,23 @@ function formatSymptomList(symptoms, type) {
       }
     }
   } else if (starterLower.includes('does not') || starterLower.includes('reports no') || 
-             starterLower.includes('no history') || starterLower.includes('no symptoms')) {
+             starterLower.includes('no history') || starterLower.includes('no prior') ||
+             starterLower.includes('denies history') || starterLower.includes('never had') ||
+             starterLower.includes('no previous') || starterLower.includes('no symptoms')) {
     // These need special handling
     if (cleanedSymptoms.length === 1) {
       return `${starter} ${cleanedSymptoms[0]}.`;
     } else {
       const last = cleanedSymptoms.pop();
       return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
+    }
+  } else if (starterLower.includes('history') || starterLower.includes('diagnosis')) {
+    // History-specific starters
+    if (cleanedSymptoms.length === 1) {
+      return `${starter} ${cleanedSymptoms[0]}.`;
+    } else {
+      const last = cleanedSymptoms.pop();
+      return `${starter} ${cleanedSymptoms.join(', ')} and ${last}.`;
     }
   } else {
     // Standard format for most starters
