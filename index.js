@@ -463,7 +463,18 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isTopNote) {
       b.innerHTML = '<strong>It\'s very helpful for your medical practitioner to have as much information as possible for an accurate diagnosis and treatment plan.</strong>';
     } else {
-      b.innerHTML = '<strong>Tap symptoms to cycle through states:</strong> <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don\'t Have</span></div>';
+      // Check if this instruction banner is in a medication area
+      const isMedicationArea = b.closest('.card').querySelector('.medications') !== null;
+      // Check if this instruction banner is in a conditions/history area
+      const isConditionsArea = b.closest('.card').getAttribute('data-grid') === 'historyGrid';
+      
+      if (isMedicationArea) {
+        b.innerHTML = '<strong>Tap symptoms to cycle through states:</strong> <div class="legend"><span class="neutral">Neutral</span><span class="have">Have Used</span><span class="donthave">Have Not Used</span></div>';
+      } else if (isConditionsArea) {
+        b.innerHTML = '<strong>Tap symptoms to cycle through states:</strong> <div class="legend"><span class="neutral">Neutral</span><span class="have">Have Had</span><span class="donthave">Have Not Had</span></div>';
+      } else {
+        b.innerHTML = '<strong>Tap symptoms to cycle through states:</strong> <div class="legend"><span class="neutral">Neutral</span><span class="have">Have</span><span class="donthave">Don\'t Have</span></div>';
+      }
     }
   });
 });
