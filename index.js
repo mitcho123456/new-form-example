@@ -178,12 +178,17 @@ function processSymptomToggles(card) {
   return results;
 }
 
-function formatSymptomList(symptoms, type, isMedicalHistory = false) {
+function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedications = false) {
   // Variety of medical terminology for more natural output
   const positiveStarters = [
     'Reports', 'Presents with', 'Experiencing', 'Complains of', 
     'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
     'Positive for', 'Affirms', 'Acknowledges', 'Mentions'
+  ];
+  
+  const positiveMedicationStarters = [
+    'Has a history of using', 'Has used', 'Previously used', 'Has taken',
+    'Reports using', 'Currently uses', 'Has been taking', 'Takes'
   ];
   
   const positiveHistoryStarters = [
@@ -197,6 +202,11 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
     'No history of', 'Unremarkable for', 'Does not admit to', 'No symptoms of'
   ];
   
+  const negativeMedicationStarters = [
+    'Has not used', 'Denies using', 'No history of using', 'Has never taken',
+    'Does not use', 'Free of', 'Has not taken', 'Never used'
+  ];
+  
   const negativeHistoryStarters = [
     'No history of', 'No prior history of', 'Denies history of',
     'No previous diagnosis of', 'Never had'
@@ -204,7 +214,7 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   
   // Intelligently select starter based on context
   let starter = '';
-  if (isMedicationList) {
+  if (isMedications) {
     // Special handling for medication-related symptoms
     if (type === 'positive') {
       starter = selectFromArray(positiveMedicationStarters);
@@ -241,7 +251,7 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
     let cleaned = s.toLowerCase();
     
     // Handle special cases for negative phrasing
-    if (type === 'negative' && !isMedicalHistory) {
+    if (type === 'negative' && !isMedicalHistory && !isMedications) {
       // Remove "Can't" or "Cannot" at the beginning for negative context
       cleaned = cleaned.replace(/^can't\s+/i, '').replace(/^cannot\s+/i, '');
       
