@@ -283,7 +283,9 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   } else if (starterLower.includes('does not') || starterLower.includes('reports no') || 
              starterLower.includes('no history') || starterLower.includes('no prior') ||
              starterLower.includes('denies history') || starterLower.includes('never had') ||
-             starterLower.includes('no previous') || starterLower.includes('no symptoms')) {
+             starterLower.includes('no previous') || starterLower.includes('no symptoms') ||
+             starterLower.includes('has not used') || starterLower.includes('denies using') ||
+             starterLower.includes('has never taken') || starterLower.includes('never used')) {
     // These need special handling
     if (cleanedSymptoms.length === 1) {
       return `${starter} ${cleanedSymptoms[0]}.`;
@@ -291,8 +293,10 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
       const last = cleanedSymptoms.pop();
       return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
     }
-  } else if (starterLower.includes('history') || starterLower.includes('diagnosis')) {
-    // History-specific starters
+  } else if (starterLower.includes('history') || starterLower.includes('diagnosis') || 
+             starterLower.includes('has used') || starterLower.includes('has taken') ||
+             starterLower.includes('previously used') || starterLower.includes('currently uses')) {
+    // History-specific starters and medication starters
     if (cleanedSymptoms.length === 1) {
       return `${starter} ${cleanedSymptoms[0]}.`;
     } else {
