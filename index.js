@@ -150,6 +150,9 @@ function processSymptomToggles(card) {
   // Check if this is the Medical History card
   const isMedicalHistory = card.getAttribute('data-grid') === 'historyGrid';
   
+  // Check if this card contains medication toggles
+  const hasMedicationToggles = card.querySelector('.symptom-toggle.medications') !== null;
+  
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
     const symptomText = toggle.textContent.trim();
@@ -162,13 +165,13 @@ function processSymptomToggles(card) {
   
   // Format "have" symptoms
   if (haveSymptoms.length > 0) {
-    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory);
+    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory, hasMedicationToggles);
     results.push(formatted);
   }
   
   // Format "don't have" symptoms  
   if (dontHaveSymptoms.length > 0) {
-    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory);
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory, hasMedicationToggles);
     results.push(formatted);
   }
   
@@ -201,7 +204,14 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false) {
   
   // Intelligently select starter based on context
   let starter = '';
-  if (isMedicalHistory) {
+  if (isMedicationList) {
+    // Special handling for medication-related symptoms
+    if (type === 'positive') {
+      starter = selectFromArray(positiveMedicationStarters);
+    } else {
+      starter = selectFromArray(negativeMedicationStarters);
+    }
+  } else if (isMedicalHistory) {
     // Special handling for medical history
     if (type === 'positive') {
       starter = selectFromArray(positiveHistoryStarters);
