@@ -18,6 +18,11 @@ function hasText(s) {
 }
 
 function getSmartLabel(el) {
+  // Special handling for Expectations field
+  if (el.id === 'Expectations') {
+    return 'Expectations from consultation';
+  }
+  
   if (el.dataset && el.dataset.label && hasText(el.dataset.label)) return el.dataset.label.trim();
   
   // label[for]
@@ -101,14 +106,13 @@ async function generateOutput() {
       
       const fieldLabel = getSmartLabel(ctrl);
       
-      // Format based on control type and specific field handling
-      if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
-        // Special handling for expectations field
-        if (ctrl.id && ctrl.id.toLowerCase().includes('expectation')) {
-          lines.push(`Expectations of consultation - ${val.trim()}.`);
-        } else {
-          lines.push(capitalizeAndAddFullStop(val.trim()));
-        }
+      // Special handling for Expectations field - always use label format
+      if (ctrl.id === 'Expectations') {
+        lines.push(`${fieldLabel} - ${val.trim()}`);
+      }
+      // Format based on control type for other fields
+      else if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
+        lines.push(capitalizeAndAddFullStop(val.trim()));
       } else {
         lines.push(`${fieldLabel} - ${val.trim()}`);
       }
@@ -145,38 +149,29 @@ function processSymptomToggles(card) {
   
   // Check if this is the Medical History card
   const isMedicalHistory = card.getAttribute('data-grid') === 'historyGrid';
-  const isMedications = card.getAttribute('data-grid') === 'medicationsGrid';
+  
+  // Check if this card contains medication toggles
+  const hasMedicationToggles = card.querySelector('.symptom-toggle.medications') !== null;
   
   // Collect all symptom toggles
   card.querySelectorAll('.symptom-toggle').forEach(toggle => {
     const symptomText = toggle.textContent.trim();
-    const isMedication = toggle.classList.contains('medications');
-    const isCondition = toggle.classList.contains('conditions');
-    
     if (toggle.classList.contains('have')) {
-      haveSymptoms.push({
-        text: symptomText,
-        isMedication: isMedication,
-        isCondition: isCondition
-      });
+      haveSymptoms.push(symptomText);
     } else if (toggle.classList.contains('donthave')) {
-      dontHaveSymptoms.push({
-        text: symptomText,
-        isMedication: isMedication,
-        isCondition: isCondition
-      });
+      dontHaveSymptoms.push(symptomText);
     }
   });
   
   // Format "have" symptoms
   if (haveSymptoms.length > 0) {
-    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory, isMedications);
+    const formatted = formatSymptomList(haveSymptoms, 'positive', isMedicalHistory, hasMedicationToggles);
     results.push(formatted);
   }
   
   // Format "don't have" symptoms  
   if (dontHaveSymptoms.length > 0) {
-    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory, isMedications);
+    const formatted = formatSymptomList(dontHaveSymptoms, 'negative', isMedicalHistory, hasMedicationToggles);
     results.push(formatted);
   }
   
@@ -184,43 +179,16 @@ function processSymptomToggles(card) {
 }
 
 function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedications = false) {
-  // Check if we have medications or conditions
-  const hasMedications = symptoms.some(s => s.isMedication);
-  const hasConditions = symptoms.some(s => s.isCondition);
-  
-  // Handle medications specifically
-  if (hasMedications) {
-    const medicationSymptoms = symptoms.filter(s => s.isMedication);
-    const prefix = type === 'positive' ? 'Has history of using' : 'Has no history of using';
-    
-    if (medicationSymptoms.length === 1) {
-      return `${prefix} ${medicationSymptoms[0].text.toLowerCase()}.`;
-    } else {
-      const last = medicationSymptoms.pop();
-      const conjunction = type === 'negative' ? 'or' : 'and';
-      return `${prefix} ${medicationSymptoms.map(s => s.text.toLowerCase()).join(', ')} ${conjunction} ${last.text.toLowerCase()}.`;
-    }
-  }
-  
-  // Handle conditions specifically
-  if (hasConditions) {
-    const conditionSymptoms = symptoms.filter(s => s.isCondition);
-    const prefix = type === 'positive' ? 'Has history of' : 'Has no history of';
-    
-    if (conditionSymptoms.length === 1) {
-      return `${prefix} ${conditionSymptoms[0].text.toLowerCase()}.`;
-    } else {
-      const last = conditionSymptoms.pop();
-      const conjunction = type === 'negative' ? 'or' : 'and';
-      return `${prefix} ${conditionSymptoms.map(s => s.text.toLowerCase()).join(', ')} ${conjunction} ${last.text.toLowerCase()}.`;
-    }
-  }
-  
-  // Original symptom formatting for regular symptoms
+  // Variety of medical terminology for more natural output
   const positiveStarters = [
     'Reports', 'Presents with', 'Experiencing', 'Complains of', 
     'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
     'Positive for', 'Affirms', 'Acknowledges', 'Mentions'
+  ];
+  
+  const positiveMedicationStarters = [
+    'Has a history of using', 'Has used', 'Previously used', 'Has taken',
+    'Reports using', 'Currently uses', 'Has been taking', 'Takes'
   ];
   
   const positiveHistoryStarters = [
@@ -234,17 +202,26 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedicatio
     'No history of', 'Unremarkable for', 'Does not admit to', 'No symptoms of'
   ];
   
+  const negativeMedicationStarters = [
+    'Has not used', 'Denies using', 'No history of using', 'Has never taken',
+    'Does not use', 'Free of', 'Has not taken', 'Never used'
+  ];
+  
   const negativeHistoryStarters = [
     'No history of', 'No prior history of', 'Denies history of',
     'No previous diagnosis of', 'Never had'
   ];
   
-  // Extract text for formatting
-  const symptomTexts = symptoms.map(s => s.text);
-  
   // Intelligently select starter based on context
   let starter = '';
-  if (isMedicalHistory) {
+  if (isMedications) {
+    // Special handling for medication-related symptoms
+    if (type === 'positive') {
+      starter = selectFromArray(positiveMedicationStarters);
+    } else {
+      starter = selectFromArray(negativeMedicationStarters);
+    }
+  } else if (isMedicalHistory) {
     // Special handling for medical history
     if (type === 'positive') {
       starter = selectFromArray(positiveHistoryStarters);
@@ -253,16 +230,16 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedicatio
     }
   } else if (type === 'positive') {
     // Use different starters based on symptom type and count
-    if (symptomTexts.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
+    if (symptoms.some(s => s.toLowerCase().includes('pain') || s.toLowerCase().includes('ache'))) {
       starter = selectFromArray(['Complains of', 'Reports', 'Describes', 'Experiencing']);
-    } else if (symptomTexts.length > 3) {
+    } else if (symptoms.length > 3) {
       starter = selectFromArray(['Presents with', 'Experiencing', 'Reports']);
     } else {
       starter = selectFromArray(positiveStarters);
     }
   } else {
     // Select negative starter based on context
-    if (symptomTexts.length === 1) {
+    if (symptoms.length === 1) {
       starter = selectFromArray(['Denies', 'Negative for', 'No', 'Reports no']);
     } else {
       starter = selectFromArray(negativeStarters);
@@ -270,11 +247,11 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedicatio
   }
   
   // Clean up symptom names for better grammar
-  const cleanedSymptoms = symptomTexts.map(s => {
+  const cleanedSymptoms = symptoms.map(s => {
     let cleaned = s.toLowerCase();
     
     // Handle special cases for negative phrasing
-    if (type === 'negative' && !isMedicalHistory) {
+    if (type === 'negative' && !isMedicalHistory && !isMedications) {
       // Remove "Can't" or "Cannot" at the beginning for negative context
       cleaned = cleaned.replace(/^can't\s+/i, '').replace(/^cannot\s+/i, '');
       
@@ -316,7 +293,9 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedicatio
   } else if (starterLower.includes('does not') || starterLower.includes('reports no') || 
              starterLower.includes('no history') || starterLower.includes('no prior') ||
              starterLower.includes('denies history') || starterLower.includes('never had') ||
-             starterLower.includes('no previous') || starterLower.includes('no symptoms')) {
+             starterLower.includes('no previous') || starterLower.includes('no symptoms') ||
+             starterLower.includes('has not used') || starterLower.includes('denies using') ||
+             starterLower.includes('has never taken') || starterLower.includes('never used')) {
     // These need special handling
     if (cleanedSymptoms.length === 1) {
       return `${starter} ${cleanedSymptoms[0]}.`;
@@ -324,8 +303,10 @@ function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedicatio
       const last = cleanedSymptoms.pop();
       return `${starter} ${cleanedSymptoms.join(', ')} or ${last}.`;
     }
-  } else if (starterLower.includes('history') || starterLower.includes('diagnosis')) {
-    // History-specific starters
+  } else if (starterLower.includes('history') || starterLower.includes('diagnosis') || 
+             starterLower.includes('has used') || starterLower.includes('has taken') ||
+             starterLower.includes('previously used') || starterLower.includes('currently uses')) {
+    // History-specific starters and medication starters
     if (cleanedSymptoms.length === 1) {
       return `${starter} ${cleanedSymptoms[0]}.`;
     } else {
@@ -455,7 +436,7 @@ function setAria(el) {
   el.setAttribute('data-state', state);
   el.setAttribute('role', 'button');
   if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '0');
-  el.setAttribute('aria-label', `${el.textContent.trim()} — ${state.replace('-', ' ')}`);
+  el.setAttribute('aria-label', `${el.textContent.trim()} – ${state.replace('-', ' ')}`);
 }
 
 function updateCounters(card) {
