@@ -1155,3 +1155,67 @@
     display: none;
   }
 }
+
+/* ==============================
+   DESKTOP-ONLY SPEECH WIDGET
+   Hide on mobile and tablet devices
+   ============================== */
+
+/* Hide speech widget on tablets and smaller devices */
+@media (max-width: 1024px) {
+  .speech-widget,
+  #speechWidget {
+    display: none !important;
+  }
+  
+  /* Also hide the settings panel if it's open */
+  .speech-settings-panel,
+  #speechSettings {
+    display: none !important;
+  }
+}
+
+/* Alternative approach using hover capability detection */
+/* This hides the widget on touch-only devices */
+@media (hover: none) {
+  .speech-widget,
+  #speechWidget {
+    display: none !important;
+  }
+  
+  .speech-settings-panel,
+  #speechSettings {
+    display: none !important;
+  }
+}
+
+/* Ensure it only shows on desktop with pointer capability */
+@media (min-width: 1025px) and (hover: hover) and (pointer: fine) {
+  .speech-widget,
+  #speechWidget {
+    display: flex !important;
+  }
+}
+
+/* Optional: Add a subtle message for mobile users */
+@media (max-width: 1024px) {
+  .mobile-speech-notice {
+    display: block;
+    background: #f0f8ff;
+    border: 1px solid #b3d9ff;
+    color: #0066cc;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    text-align: center;
+    margin: 10px auto;
+    max-width: 300px;
+  }
+}
+
+/* Hide the notice on desktop */
+@media (min-width: 1025px) {
+  .mobile-speech-notice {
+    display: none;
+  }
+}
