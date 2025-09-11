@@ -32,11 +32,11 @@
       <div class="card-content">
         <div class="form-group">
           <label>When did your symptoms start and how long have they been going on for?</label>
-          <textarea id="description" placeholder="Describe onset and duration..."></textarea>
+          <textarea id="description" data-natural="Symptoms started" placeholder="Describe onset and duration..."></textarea>
         </div>
         <div class="form-group">
           <label>When was your last menstrual period</label>
-          <input type="text" id="Last menstrual period-" placeholder="Date of last period..." />
+          <input type="text" id="Last menstrual period-" data-natural="Last menstrual period" placeholder="Enter date..." />
         </div>
       </div>
     </div>
@@ -50,31 +50,31 @@
       <div class="card-content">
         <div class="form-group">
           <label>Where is the pain located</label>
-          <input type="text" id="Pain located in" placeholder="Describe pain location..." />
+          <input type="text" id="Pain located in" data-natural="Pain located in" placeholder="Describe location..." />
         </div>
         <div class="form-group">
           <label>Does the pain radiate to any other areas</label>
-          <input type="text" id="Radiates to" placeholder="Where does the pain spread to..." />
+          <input type="text" id="Radiates to" data-natural="Radiates to" placeholder="Describe radiation..." />
         </div>
         <div class="form-group">
           <label>How would you describe the character of the pain</label>
-          <input type="text" id="Character of pain is" placeholder="Sharp, dull, cramping, burning..." />
+          <input type="text" id="Character of pain is" data-natural="Character" placeholder="Sharp, dull, burning, etc..." />
         </div>
         <div class="form-group">
           <label>Are there any factors or activities that seem to be associated with the pain</label>
-          <input type="text" id="Pain is associated with" placeholder="What triggers or accompanies the pain..." />
+          <input type="text" id="Pain is associated with" data-natural="Associated with" placeholder="Eating, movement, etc..." />
         </div>
         <div class="form-group">
           <label>What provides relief from the pain</label>
-          <input type="text" id="Alleviated by" placeholder="What makes it better..." />
+          <input type="text" id="Alleviated by" data-natural="Relieved by" placeholder="Rest, medication, position..." />
         </div>
         <div class="form-group">
           <label>What makes the pain worse</label>
-          <input type="text" id="Pain is exacerbated by" placeholder="What makes it worse..." />
+          <input type="text" id="Pain is exacerbated by" data-natural="Worsened by" placeholder="Movement, eating, etc..." />
         </div>
         <div class="form-group">
           <label>On a scale of 1 to 10, how would you rate the severity of the pain</label>
-          <input type="text" id="Pain severity -" placeholder="1-10 scale..." />
+          <input type="text" id="Pain severity -" data-natural="Severity" placeholder="1-10 scale..." />
         </div>
       </div>
     </div>
@@ -156,6 +156,7 @@
           <div class="symptom-toggle" data-symptom="dysuria">Pain or discomfort while urinating</div>
           <div class="symptom-toggle" data-symptom="frequency">Increased frequency of urination</div>
           <div class="symptom-toggle" data-symptom="foul smelling urine">Foul-smelling urine</div>
+          <div class="symptom-toggle" data-symptom="melena">Melena (black, tarry stools)</div>
         </div>
       </div>
     </div>
@@ -173,16 +174,15 @@
       <div class="card-content">
         <div class="ux-instruction"></div>
         <div class="symptom-grid" id="reproductiveGrid">
-          <div class="symptom-toggle" data-symptom="melena">Melena (black, tarry stools)</div>
           <div class="symptom-toggle" data-symptom="testicular pain">Testicular pain</div>
           <div class="symptom-toggle" data-symptom="urethral discharge">Urethral discharge</div>
           <div class="symptom-toggle" data-symptom="vaginal discharge">Vaginal discharge</div>
           <div class="symptom-toggle" data-symptom="dyspareunia">Pain during sexual intercourse</div>
           <div class="symptom-toggle" data-symptom="being sexually active">Currently sexually active</div>
           <div class="symptom-toggle" data-symptom="using contraception">Using contraception</div>
-          <div class="symptom-toggle" data-symptom="doing a home pregnancy test">Have done a home pregnancy test</div>
-          <div class="symptom-toggle" data-symptom="positive pregnancy test">Pregnancy test was positive</div>
-          <div class="symptom-toggle" data-symptom="abdominal pain every time periods begin">Abdominal pain every time periods begin</div>
+          <div class="symptom-toggle" data-symptom="doing a home pregnancy test">Done a home pregnancy test</div>
+          <div class="symptom-toggle" data-symptom="positive pregnancy test">Positive pregnancy test</div>
+          <div class="symptom-toggle" data-symptom="abdominal pain every time periods begin">Abdominal pain with periods</div>
           <div class="symptom-toggle" data-symptom="vaginal bleeding with clots">Vaginal bleeding with clots</div>
           <div class="symptom-toggle" data-symptom="vaginal bleeding with fetal tissue">Vaginal bleeding with fetal tissue</div>
         </div>
@@ -232,35 +232,35 @@
       <div class="card-content">
         <div class="form-group">
           <label>Current medications</label>
-          <input type="text" id="Currently taking -" placeholder="List all current medications..." />
+          <input type="text" id="Currently taking -" data-natural="Currently taking" placeholder="List all current medications..." />
         </div>
         <div class="form-group">
           <label>Drug allergies</label>
-          <input type="text" id="Drug Allergies -" placeholder="List any drug allergies and reactions..." />
+          <input type="text" id="Drug Allergies -" data-natural="Drug allergies" placeholder="List any drug allergies and reactions..." />
         </div>
         <div class="form-group">
           <label>Other medical conditions</label>
-          <input type="text" id="Past Medical History -" placeholder="Any other conditions..." />
+          <input type="text" id="Past Medical History -" data-natural="Past medical history" placeholder="Any other conditions..." />
         </div>
         <div class="form-group">
           <label>Surgical history</label>
-          <input type="text" id="Past Surgical History -" placeholder="Previous surgeries and dates..." />
+          <input type="text" id="Past Surgical History -" data-natural="Past surgical history" placeholder="Previous surgeries and dates..." />
         </div>
         <div class="form-group">
           <label>Response to previous treatments</label>
-          <input type="text" id=" Response to previous treatments or interventions -" placeholder="Did previous treatments work?" />
+          <input type="text" id=" Response to previous treatments or interventions -" data-natural="Response to previous treatments" placeholder="Did previous treatments work?" />
         </div>
         <div class="form-group">
           <label>Smoking history</label>
-          <input type="text" id="Smoking History -" placeholder="Cigarettes per day, years..." />
+          <input type="text" id="Smoking History -" data-natural="Smoking history" placeholder="Cigarettes per day, years..." />
         </div>
         <div class="form-group">
           <label>Alcohol use</label>
-          <input type="text" id="Alcohol History -" placeholder="Drinks per week..." />
+          <input type="text" id="Alcohol History -" data-natural="Alcohol history" placeholder="Drinks per week..." />
         </div>
         <div class="form-group">
           <label>Recreational drugs</label>
-          <input type="text" id="Recreational drug use -" placeholder="Type and frequency..." />
+          <input type="text" id="Recreational drug use -" data-natural="Recreational drug use" placeholder="Type and frequency..." />
         </div>
       </div>
     </div>
@@ -273,8 +273,8 @@
       </div>
       <div class="card-content">
         <div class="form-group">
-          <label>What are you hoping to achieve from this consultation?</label>
-          <textarea id="further-details" class="expectations" placeholder="What are you hoping to achieve from this consultation?"></textarea>
+          <label>Any other relevant details or requests for the doctor?</label>
+          <textarea id="further-details" data-natural="Expectations of the consultation" class="expectations" placeholder="What are you hoping to achieve from this consultation?"></textarea>
         </div>
       </div>
     </div>
