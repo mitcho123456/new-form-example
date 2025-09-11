@@ -70,75 +70,110 @@ function getSmartValue(el) {
   return '';
 }
 
-// ================
-// OUTPUT GENERATION (Streamlined)
-// ================
-async function generateOutput() {
-  const modal = document.getElementById('outputModal');
-  const modalText = document.getElementById('outputText');
+
+
+function generateNaturalLanguageOutput() {
+  let output = [];
   
-  let lines = []; // Single array for all output lines
-  
-  // Process cards in order they appear in the form
-  const cards = document.querySelectorAll('.card');
-  
-  cards.forEach(card => {
-    // Get all form controls in this card
-    const controls = card.querySelectorAll(`
-      textarea,
-      input[type="text"],
-      input[type="number"],
-      input[type="date"],
-      input[type="time"],
-      input[type="email"],
-      input[type="tel"],
-      input[type="url"],
-      select,
-      [contenteditable][data-field]
-    `);
-    
-    // Process controls in the order they appear
-    controls.forEach(ctrl => {
-      if (ctrl.dataset && ctrl.dataset.skip === 'true') return;
-      
-      const val = getSmartValue(ctrl);
-      if (!hasText(val)) return;
-      
-      const fieldLabel = getSmartLabel(ctrl);
-      
-      // Special handling for Expectations field - always use label format
-      if (ctrl.id === 'Expectations') {
-        lines.push(`${fieldLabel} - ${val.trim()}`);
-      }
-      // Format based on control type for other fields
-      else if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
-        lines.push(capitalizeAndAddFullStop(val.trim()));
-      } else {
-        lines.push(`${fieldLabel} - ${val.trim()}`);
-      }
-    });
-    
-    // Process symptom toggles in this card
-    const symptoms = processSymptomToggles(card);
-    if (symptoms.length > 0) {
-      lines.push(...symptoms);
+  // Process text inputs and textareas with data-natural attributes
+  const textInputs = document.querySelectorAll('input[type="text"][data-natural], textarea[data-natural]');
+  textInputs.forEach(input => {
+    const value = input.value.trim();
+    if (value) {
+      const naturalLabel = input.getAttribute('data-natural');
+      output.push(`${naturalLabel}: ${value}`);
     }
   });
   
-  // Compose final text
-  const outputText = lines.join('\n').trim();
+  // Process symptom toggles
+  const symptomToggles = document.querySelectorAll('.symptom-toggle');
+  const haveSymptoms = [];
+  const dontHaveSymptoms = [];
+  const haveConditions = [];
+  const dontHaveConditions = [];
+  const haveMedications = [];
+  const dontHaveMedications = [];
   
-  // Update modal content
-  if (modalText) {
-    modalText.value = outputText || 'No data to display.';
-    // Make sure textarea is properly sized
-    modalText.style.height = 'auto';
-    modalText.style.height = modalText.scrollHeight + 'px';
+  symptomToggles.forEach(toggle => {
+    const symptom = toggle.getAttribute('data-symptom');
+    const state = toggle.getAttribute('data-state');
+    
+    if (state === 'have') {
+      if (toggle.classList.contains('conditions')) {
+        haveConditions.push(symptom);
+      } else if (toggle.classList.contains('medications')) {
+        haveMedications.push(symptom);
+      } else {
+        haveSymptoms.push(symptom);
+      }
+    } else if (state === 'no') {
+      if (toggle.classList.contains('conditions')) {
+        dontHaveConditions.push(symptom);
+      } else if (toggle.classList.contains('medications')) {
+        dontHaveMedications.push(symptom);
+      } else {
+        dontHaveSymptoms.push(symptom);
+      }
+    }
+  });
+  
+  // Add symptoms to output
+  if (haveSymptoms.length > 0) {
+    output.push(`Reports: ${haveSymptoms.join(', ')}`);
+  }
+  if (dontHaveSymptoms.length > 0) {
+    output.push(`Denies: ${dontHaveSymptoms.join(', ')}`);
   }
   
-  // Show modal
-  if (modal) {
-    modal.style.display = 'flex';
+  // Add medical conditions to output
+  if (haveConditions.length > 0) {
+    output.push(`Has a history of: ${haveConditions.join(', ')}`);
+  }
+  if (dontHaveConditions.length > 0) {
+    output.push(`Has no history of: ${dontHaveConditions.join(', ')}`);
+  }
+  
+  // Add medications to output
+  if (haveMedications.length > 0) {
+    output.push(`Has a history of using: ${haveMedications.join(', ')}`);
+  }
+  if (dontHaveMedications.length > 0) {
+    output.push(`Has no history of using: ${dontHaveMedications.join(', ')}`);
+  }
+  
+  // Process legacy inputs without data-natural (for backward compatibility)
+  const legacyInputs = document.querySelectorAll('input[type="text"]:not([data-natural]), textarea:not([data-natural])');
+  legacyInputs.forEach(input => {
+    const value = input.value.trim();
+    if (value && input.id) {
+      // Convert ID to natural language
+      let naturalLabel = input.id.replace(/[-_]/g, ' ').replace(/\s+/g, ' ').trim();
+      naturalLabel = naturalLabel.replace(/\s*-\s*$/, '');
+      naturalLabel = naturalLabel.charAt(0).toUpperCase() + naturalLabel.slice(1);
+      output.push(`${naturalLabel}: ${value}`);
+    }
+  });
+  
+  return output.filter(item => item.trim()).join('\n\n');
+}
+
+
+function generateOutput() {
+  const naturalOutput = generateNaturalLanguageOutput();
+  
+  if (!naturalOutput.trim()) {
+    alert('Please fill in at least one field before generating the report.');
+    return;
+  }
+  
+  // Display in modal (works with your existing modal)
+  const outputText = document.getElementById('outputText');
+  const outputModal = document.getElementById('outputModal');
+  
+  if (outputText && outputModal) {
+    outputText.value = naturalOutput;
+    outputModal.style.display = 'flex';
+    outputText.focus();
   }
 }
 
