@@ -650,7 +650,7 @@ class AdvancedSpeechWidget {
       const { pipeline } = await window.transformersPromise;
       
       // Load Whisper model (using tiny for speed, you can use base for better accuracy)
-      this.whisperModel = await pipeline('automatic-speech-recognition', 'Xenova/whisper-base.en');
+      this.whisperModel = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
       
       this.isWhisperLoaded = true;
       this.showMessage('AI enhancement ready!', 'info');
