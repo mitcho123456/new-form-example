@@ -5,6 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Abdominal Pain</title>
   <link rel="stylesheet" href="styles.css">
+  <script type="module">
+  // Import Transformers.js for Whisper
+  window.transformersPromise = import('https://cdn.jsdelivr.net/npm/@xenova/transformers@2.6.0');
+</script>
 </head>
 <body>
   <!-- Hidden form container -->
@@ -296,7 +300,21 @@
       </div>
     </div>
   </div>
+<!-- Speech Widget -->
+<div class="speech-widget" id="speechWidget" style="position: fixed; bottom: 20px; right: 20px; z-index: 10000; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+  <button class="speech-btn" type="button" title="Click to start/stop voice dictation" id="speechBtn">
+    <svg class="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 1a4 4 0 0 0-4 4v6a4 4 0 0 0 8 0V5a4 4 0 0 0-4-4z"/>
+      <path d="M19 10v1a7 7 0 0 1-14 0v-1"/>
+      <line x1="12" y1="19" x2="12" y2="23"/>
+      <line x1="8" y1="23" x2="16" y2="23"/>
+    </svg>
+    <div class="pulse-ring"></div>
+  </button>
+  <div class="speech-status" id="speechStatus">Click to start dictation</div>
+</div>
 
   <script src="index.js"></script>
+  <script src="speech-widget.js"></script>
 </body>
 </html>
