@@ -1,5 +1,5 @@
 // ==============================
-// Streamlined index.js
+// Enhanced index.js with Natural Language Support
 // ==============================
 
 // Collapse/expand cards
@@ -17,10 +17,16 @@ function hasText(s) {
   return !!(s && String(s).trim().length); 
 }
 
+// ENHANCED: Now handles data-natural attributes
 function getSmartLabel(el) {
   // Special handling for Expectations field
   if (el.id === 'Expectations') {
     return 'Expectations from consultation';
+  }
+  
+  // NEW: Check for data-natural attribute first for natural language output
+  if (el.dataset && el.dataset.natural && hasText(el.dataset.natural)) {
+    return el.dataset.natural.trim();
   }
   
   if (el.dataset && el.dataset.label && hasText(el.dataset.label)) return el.dataset.label.trim();
@@ -71,7 +77,7 @@ function getSmartValue(el) {
 }
 
 // ================
-// OUTPUT GENERATION (Streamlined)
+// OUTPUT GENERATION (Enhanced with Natural Language)
 // ================
 async function generateOutput() {
   const modal = document.getElementById('outputModal');
@@ -106,8 +112,12 @@ async function generateOutput() {
       
       const fieldLabel = getSmartLabel(ctrl);
       
+      // NEW: Natural language formatting for data-natural elements
+      if (ctrl.dataset && ctrl.dataset.natural) {
+        lines.push(`${fieldLabel}: ${val.trim()}`);
+      }
       // Special handling for Expectations field - always use label format
-      if (ctrl.id === 'Expectations') {
+      else if (ctrl.id === 'Expectations') {
         lines.push(`${fieldLabel} - ${val.trim()}`);
       }
       // Format based on control type for other fields
@@ -142,6 +152,7 @@ async function generateOutput() {
   }
 }
 
+// ENHANCED: Process symptom toggles with natural language support for conditions and medications
 function processSymptomToggles(card) {
   const results = [];
   const haveSymptoms = [];
@@ -178,8 +189,9 @@ function processSymptomToggles(card) {
   return results;
 }
 
+// ENHANCED: Better formatting for conditions and medications
 function formatSymptomList(symptoms, type, isMedicalHistory = false, isMedications = false) {
-  // Variety of medical terminology for more natural output
+  // Enhanced medical terminology for more natural output
   const positiveStarters = [
     'Reports', 'Presents with', 'Experiencing', 'Complains of', 
     'Admits to', 'Describes', 'Notes', 'States has', 'Has', 
@@ -370,7 +382,7 @@ function emailOutput() {
     return;
   }
   
-  const subject = encodeURIComponent('Abdominal pain symptom form');
+  const subject = encodeURIComponent('Medical symptom report');
   const body = encodeURIComponent(text);
   window.location.href = `mailto:?subject=${subject}&body=${body}`;
 }
