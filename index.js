@@ -508,20 +508,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 // ==============================
-// Advanced Professional Speech Widget
-// Complete implementation with voice commands, multi-language, and advanced features
+// Complete Advanced Speech Widget with Hybrid AI Recognition
+// Includes ALL features + Web Speech API + Whisper integration
 // ==============================
 
 class AdvancedSpeechWidget {
   constructor() {
+    // Core recognition engines
     this.recognition = null;
+    this.whisperModel = null;
+    this.mediaRecorder = null;
+    this.audioChunks = [];
+    this.isWhisperLoaded = false;
+    
+    // State management
     this.isListening = false;
     this.isPushToTalk = false;
     this.currentTarget = null;
     this.finalTranscript = '';
     this.interimTranscript = '';
     
-    // Settings with defaults
+    // Hybrid recognition settings
+    this.useHybridMode = true;
+    this.confidenceThreshold = 0.6; // Lower threshold to trigger Whisper backup
+    this.whisperBackupEnabled = true;
+    
+    // Settings with defaults (including hybrid mode)
     this.settings = {
       language: 'en-US',
       timeout: 30,
@@ -529,10 +541,11 @@ class AdvancedSpeechWidget {
       autoCapitalization: true,
       pushToTalk: false,
       confidenceThreshold: 0.7,
-      continuousMode: true
+      continuousMode: true,
+      hybridMode: true // New setting for AI enhancement
     };
     
-    // State management
+    // Advanced state management
     this.undoStack = [];
     this.redoStack = [];
     this.maxUndoLevels = 20;
@@ -540,6 +553,10 @@ class AdvancedSpeechWidget {
     this.capsMode = 'normal'; // normal, caps, allcaps, nocaps
     this.lastActivity = Date.now();
     this.isTabVisible = true;
+    this.restartAttempts = 0;
+    this.maxRestartAttempts = 5;
+    this.restartDelay = 100;
+    this.activityTimeout = 30000; // 30 seconds of silence before auto-pause
     
     // Voice command patterns
     this.punctuationCommands = {
@@ -598,7 +615,7 @@ class AdvancedSpeechWidget {
     this.init();
   }
 
-  init() {
+  async init() {
     this.loadSettings();
     
     if (!this.checkBrowserSupport()) {
@@ -610,10 +627,225 @@ class AdvancedSpeechWidget {
     this.setupEventListeners();
     this.setupKeyboardShortcuts();
     this.setupVisibilityTracking();
+    this.setupActivityMonitoring();
     this.createSettingsPanel();
     
-    console.log('Advanced speech widget initialized with all features');
+    // Load Whisper model for hybrid mode
+    if (this.settings.hybridMode) {
+      this.loadWhisperModel();
+    }
+    
+    console.log('Advanced speech widget with hybrid AI recognition initialized');
   }
+
+  // ==============================
+  // HYBRID AI RECOGNITION SYSTEM
+  // ==============================
+
+  async loadWhisperModel() {
+    try {
+      this.showMessage('Loading AI model for enhanced accuracy...', 'info');
+      
+      // Wait for transformers to be available
+      const { pipeline } = await window.transformersPromise;
+      
+      // Load Whisper model (using tiny for speed, you can use base for better accuracy)
+      this.whisperModel = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
+      
+      this.isWhisperLoaded = true;
+      this.showMessage('AI enhancement ready!', 'info');
+      console.log('Whisper model loaded successfully');
+      
+    } catch (error) {
+      console.warn('Failed to load Whisper model:', error);
+      this.showMessage('AI enhancement unavailable, using standard recognition', 'warning');
+      this.isWhisperLoaded = false;
+    }
+  }
+
+  async startAudioRecording() {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          sampleRate: 16000,
+          channelCount: 1,
+          echoCancellation: true,
+          noiseSuppression: true
+        }
+      });
+      
+      this.mediaRecorder = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+      
+      this.audioChunks = [];
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          this.audioChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onstop = () => {
+        // Clean up stream
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      // Record in 2-second chunks for real-time processing
+      this.mediaRecorder.start(2000);
+      
+    } catch (error) {
+      console.warn('Failed to start audio recording:', error);
+    }
+  }
+
+  async enhanceWithWhisper(webSpeechText, alternatives) {
+    if (!this.isWhisperLoaded || this.audioChunks.length === 0) {
+      this.processFinalTranscript(webSpeechText);
+      return;
+    }
+
+    try {
+      // Get recent audio chunks (last 5 seconds)
+      const recentChunks = this.audioChunks.slice(-3);
+      const audioBlob = new Blob(recentChunks, { type: 'audio/webm' });
+      
+      // Convert to format Whisper can process
+      const audioBuffer = await this.audioToBuffer(audioBlob);
+      
+      // Process with Whisper
+      const whisperResult = await this.whisperModel(audioBuffer);
+      
+      if (whisperResult && whisperResult.text) {
+        // Compare results and choose the best one
+        const enhancedText = this.chooseBestTranscript(webSpeechText, whisperResult.text, alternatives);
+        this.processFinalTranscript(enhancedText);
+        this.addToHistory(enhancedText, 'hybrid', 0.9);
+        
+        if (enhancedText !== webSpeechText) {
+          this.showMessage('Enhanced with AI', 'info');
+        }
+      } else {
+        // Fallback to original
+        this.processFinalTranscript(webSpeechText);
+        this.addToHistory(webSpeechText, 'webspeech', 0.6);
+      }
+      
+    } catch (error) {
+      console.warn('Whisper enhancement failed:', error);
+      this.processFinalTranscript(webSpeechText);
+      this.addToHistory(webSpeechText, 'webspeech', 0.6);
+    }
+  }
+
+  async processAudioWithWhisper() {
+    if (!this.isWhisperLoaded || this.audioChunks.length === 0) return;
+
+    try {
+      const audioBlob = new Blob(this.audioChunks, { type: 'audio/webm' });
+      const audioBuffer = await this.audioToBuffer(audioBlob);
+      
+      const result = await this.whisperModel(audioBuffer);
+      
+      if (result && result.text && result.text.trim()) {
+        this.processFinalTranscript(result.text);
+        this.addToHistory(result.text, 'whisper', 1.0);
+        this.showMessage('Processed with AI backup', 'info');
+      }
+      
+    } catch (error) {
+      console.warn('Whisper processing failed:', error);
+    }
+  }
+
+  async audioToBuffer(audioBlob) {
+    // Convert audio blob to AudioBuffer for Whisper
+    const arrayBuffer = await audioBlob.arrayBuffer();
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    
+    try {
+      const audioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+      
+      // Convert to Float32Array (Whisper expects this format)
+      const float32Array = audioBuffer.getChannelData(0);
+      
+      return float32Array;
+    } catch (error) {
+      // If decoding fails, return the raw array buffer
+      return new Float32Array(arrayBuffer);
+    }
+  }
+
+  chooseBestTranscript(webSpeechText, whisperText, alternatives = []) {
+    // Clean both texts for comparison
+    const cleanWebSpeech = webSpeechText.trim().toLowerCase();
+    const cleanWhisper = whisperText.trim().toLowerCase();
+    
+    // If they're very similar, prefer Web Speech (faster)
+    const similarity = this.calculateSimilarity(cleanWebSpeech, cleanWhisper);
+    if (similarity > 0.8) {
+      return webSpeechText;
+    }
+    
+    // Check word count - prefer more complete transcripts
+    const webSpeechWords = cleanWebSpeech.split(/\s+/).length;
+    const whisperWords = cleanWhisper.split(/\s+/).length;
+    
+    if (whisperWords > webSpeechWords * 1.3) {
+      return whisperText;
+    }
+    
+    // Check for medical terms (customize for your domain)
+    const medicalTerms = [
+      'pain', 'symptom', 'diagnosis', 'treatment', 'medication', 'patient',
+      'fever', 'nausea', 'headache', 'abdomen', 'chest', 'breathing', 'throat',
+      'stomach', 'back', 'joint', 'muscle', 'fatigue', 'dizziness', 'rash'
+    ];
+    
+    const whisperMedicalCount = this.countMedicalTerms(cleanWhisper, medicalTerms);
+    const webSpeechMedicalCount = this.countMedicalTerms(cleanWebSpeech, medicalTerms);
+    
+    if (whisperMedicalCount > webSpeechMedicalCount) {
+      return whisperText;
+    }
+    
+    // Check alternatives from Web Speech API
+    const bestAlternative = alternatives.find(alt => 
+      alt.confidence > 0.8 && alt.transcript.trim().length > webSpeechText.length
+    );
+    
+    if (bestAlternative) {
+      return bestAlternative.transcript;
+    }
+    
+    return webSpeechText; // Default to original
+  }
+
+  calculateSimilarity(text1, text2) {
+    const words1 = text1.split(/\s+/);
+    const words2 = text2.split(/\s+/);
+    const intersection = words1.filter(word => words2.includes(word));
+    const union = [...new Set([...words1, ...words2])];
+    
+    return intersection.length / union.length;
+  }
+
+  countMedicalTerms(text, terms) {
+    return terms.filter(term => text.includes(term)).length;
+  }
+
+  addToHistory(text, source, confidence) {
+    this.transcriptHistory.push({
+      text: text,
+      source: source,
+      confidence: confidence,
+      timestamp: new Date().toISOString()
+    });
+  }
+
+  // ==============================
+  // CORE FUNCTIONALITY (EXISTING)
+  // ==============================
 
   loadSettings() {
     try {
@@ -657,34 +889,51 @@ class AdvancedSpeechWidget {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
     
+    // Optimized settings for continuous professional use
     this.recognition.continuous = this.settings.continuousMode;
     this.recognition.interimResults = true;
     this.recognition.lang = this.settings.language;
-    this.recognition.maxAlternatives = 3; // For better accuracy
+    this.recognition.maxAlternatives = 3; // Get alternatives for confidence comparison
 
     this.setupRecognitionEvents();
   }
 
   setupRecognitionEvents() {
     this.recognition.onstart = () => {
+      console.log('Speech recognition started');
       this.isListening = true;
+      this.restartAttempts = 0;
       this.updateLastActivity();
       this.updateUI();
-      this.showMessage('Listening...', 'info');
+      
+      // Start audio recording for Whisper backup
+      if (this.isWhisperLoaded && this.settings.hybridMode) {
+        this.startAudioRecording();
+      }
     };
 
     this.recognition.onend = () => {
+      console.log('Speech recognition ended');
+      
+      // Stop audio recording
+      if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+        this.mediaRecorder.stop();
+      }
+      
       if (this.isListening && this.settings.continuousMode && this.isTabVisible) {
-        // Auto-restart for continuous mode
+        // Auto-restart for continuous mode with exponential backoff
+        const delay = Math.min(this.restartDelay * Math.pow(2, this.restartAttempts), 5000);
+        
         setTimeout(() => {
-          if (this.isListening) {
-            try {
-              this.recognition.start();
-            } catch (error) {
-              console.warn('Failed to restart recognition:', error);
-            }
+          if (this.isListening && this.restartAttempts < this.maxRestartAttempts) {
+            this.restartAttempts++;
+            this.startRecognition();
+          } else if (this.restartAttempts >= this.maxRestartAttempts) {
+            console.warn('Max restart attempts reached, stopping');
+            this.stopListening();
+            this.showMessage('Speech recognition stopped due to repeated interruptions', 'warning');
           }
-        }, 100);
+        }, delay);
       } else {
         this.isListening = false;
         this.updateUI();
@@ -694,12 +943,62 @@ class AdvancedSpeechWidget {
     this.recognition.onerror = (event) => {
       console.error('Speech recognition error:', event.error);
       this.handleRecognitionError(event.error);
+      
+      // Try Whisper backup on network errors
+      if (event.error === 'network' && this.isWhisperLoaded && this.audioChunks.length > 0) {
+        this.showMessage('Network issue - using AI backup...', 'warning');
+        this.processAudioWithWhisper();
+      }
     };
 
     this.recognition.onresult = (event) => {
       this.updateLastActivity();
-      this.processResults(event);
+      this.processWebSpeechResults(event);
     };
+  }
+
+  processWebSpeechResults(event) {
+    let interimTranscript = '';
+    let finalTranscript = '';
+    let maxConfidence = 0;
+    let alternatives = [];
+    
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const result = event.results[i];
+      const transcript = result[0].transcript;
+      const confidence = result[0].confidence || 1;
+      
+      // Collect alternatives for comparison
+      for (let j = 0; j < result.length; j++) {
+        alternatives.push({
+          transcript: result[j].transcript,
+          confidence: result[j].confidence || 1
+        });
+      }
+      
+      maxConfidence = Math.max(maxConfidence, confidence);
+      
+      if (result.isFinal) {
+        finalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    
+    // Handle final results
+    if (finalTranscript) {
+      // If confidence is low and Whisper is available, enhance with AI
+      if (maxConfidence < this.confidenceThreshold && this.isWhisperLoaded && this.settings.hybridMode) {
+        this.enhanceWithWhisper(finalTranscript, alternatives);
+      } else {
+        this.processFinalTranscript(finalTranscript);
+        this.addToHistory(finalTranscript, 'webspeech', maxConfidence);
+      }
+    }
+    
+    // Update interim display
+    this.interimTranscript = interimTranscript;
+    this.updateStatusDisplay();
   }
 
   handleRecognitionError(error) {
@@ -709,54 +1008,29 @@ class AdvancedSpeechWidget {
         this.showMessage('Microphone access denied', 'error');
         break;
       case 'no-speech':
-        this.showMessage('No speech detected', 'warning');
+        // Don't treat no-speech as a fatal error in continuous mode
+        console.log('No speech detected, continuing...');
         break;
       case 'audio-capture':
         this.isListening = false;
         this.showMessage('No microphone found', 'error');
         break;
       case 'network':
-        this.showMessage('Network error - check connection', 'warning');
+        if (!this.isWhisperLoaded) {
+          this.showMessage('Network error - check connection', 'warning');
+        }
         break;
       case 'aborted':
+        // Recognition was manually stopped, don't restart
         this.isListening = false;
         break;
       default:
-        this.showMessage(`Recognition error: ${error}`, 'warning');
+        console.warn('Recognition error:', error);
     }
     
     if (['not-allowed', 'audio-capture'].includes(error)) {
       this.stopListening();
     }
-  }
-
-  processResults(event) {
-    let interimTranscript = '';
-    let finalTranscript = '';
-    let confidence = 0;
-    
-    for (let i = event.resultIndex; i < event.results.length; i++) {
-      const result = event.results[i];
-      const transcript = result[0].transcript;
-      confidence = result[0].confidence || 1;
-      
-      if (result.isFinal) {
-        if (confidence >= this.settings.confidenceThreshold) {
-          finalTranscript += transcript;
-        } else {
-          console.log(`Low confidence result ignored: ${transcript} (${confidence})`);
-        }
-      } else {
-        interimTranscript += transcript;
-      }
-    }
-    
-    if (finalTranscript) {
-      this.processFinalTranscript(finalTranscript.trim());
-    }
-    
-    this.interimTranscript = interimTranscript;
-    this.updateStatusDisplay();
   }
 
   processFinalTranscript(text) {
@@ -772,11 +1046,6 @@ class AdvancedSpeechWidget {
       
       if (finalText) {
         this.insertText(finalText);
-        this.transcriptHistory.push({
-          text: finalText,
-          timestamp: new Date().toISOString(),
-          confidence: this.lastConfidence || 1
-        });
       }
     }
   }
@@ -923,7 +1192,10 @@ class AdvancedSpeechWidget {
     return text;
   }
 
-  // Editing functions
+  // ==============================
+  // EDITING FUNCTIONS
+  // ==============================
+
   deleteLastCharacter() {
     if (!this.currentTarget) return;
     
@@ -986,7 +1258,10 @@ class AdvancedSpeechWidget {
     }
   }
 
-  // Undo/Redo system
+  // ==============================
+  // UNDO/REDO SYSTEM
+  // ==============================
+
   saveUndoState() {
     if (!this.currentTarget) return;
     
@@ -1044,7 +1319,10 @@ class AdvancedSpeechWidget {
     }
   }
 
-  // Event handling and UI
+  // ==============================
+  // EVENT HANDLING AND UI
+  // ==============================
+
   setupEventListeners() {
     const button = document.getElementById('speechBtn');
     if (button) {
@@ -1074,7 +1352,7 @@ class AdvancedSpeechWidget {
       });
     }
 
-    // Input tracking
+    // Enhanced input tracking
     document.addEventListener('focusin', (e) => {
       if (this.isInputElement(e.target)) {
         this.setCurrentTarget(e.target);
@@ -1146,6 +1424,16 @@ class AdvancedSpeechWidget {
     });
   }
 
+  setupActivityMonitoring() {
+    // Monitor for periods of inactivity
+    setInterval(() => {
+      if (this.isListening && (Date.now() - this.lastActivity) > this.activityTimeout) {
+        console.log('Auto-pausing due to inactivity');
+        this.pauseForInactivity();
+      }
+    }, 5000);
+  }
+
   createSettingsPanel() {
     // Create settings panel HTML and inject it
     const settingsHTML = `
@@ -1197,6 +1485,13 @@ class AdvancedSpeechWidget {
             </label>
           </div>
           
+          <div class="setting-group">
+            <label>
+              <input type="checkbox" id="hybridMode" ${this.settings.hybridMode ? 'checked' : ''}>
+              AI Enhancement (Whisper)
+            </label>
+          </div>
+          
           <div class="setting-actions">
             <button onclick="window.advancedSpeechWidget.saveTranscript()">Save Transcript</button>
             <button onclick="window.advancedSpeechWidget.clearHistory()">Clear History</button>
@@ -1217,13 +1512,16 @@ class AdvancedSpeechWidget {
       confidence: document.getElementById('confidenceThreshold'),
       autoPunctuation: document.getElementById('autoPunctuation'),
       autoCapitalization: document.getElementById('autoCapitalization'),
-      pushToTalk: document.getElementById('pushToTalk')
+      pushToTalk: document.getElementById('pushToTalk'),
+      hybridMode: document.getElementById('hybridMode')
     };
 
     if (elements.language) {
       elements.language.addEventListener('change', (e) => {
         this.settings.language = e.target.value;
-        this.recognition.lang = this.settings.language;
+        if (this.recognition) {
+          this.recognition.lang = this.settings.language;
+        }
         this.saveSettings();
       });
     }
@@ -1244,6 +1542,16 @@ class AdvancedSpeechWidget {
       });
     }
 
+    if (elements.hybridMode) {
+      elements.hybridMode.addEventListener('change', (e) => {
+        this.settings.hybridMode = e.target.checked;
+        if (this.settings.hybridMode && !this.isWhisperLoaded) {
+          this.loadWhisperModel();
+        }
+        this.saveSettings();
+      });
+    }
+
     Object.entries(elements).forEach(([key, element]) => {
       if (element && element.type === 'checkbox') {
         element.addEventListener('change', (e) => {
@@ -1254,7 +1562,10 @@ class AdvancedSpeechWidget {
     });
   }
 
-  // Core functionality
+  // ==============================
+  // CORE FUNCTIONALITY
+  // ==============================
+
   isInputElement(element) {
     if (!element) return false;
     
@@ -1270,16 +1581,25 @@ class AdvancedSpeechWidget {
 
   setCurrentTarget(element) {
     this.currentTarget = element;
+    this.finalTranscript = '';
+    this.interimTranscript = '';
+    
+    // Visual feedback for target selection
     this.highlightTarget(element);
+    
+    console.log('Target set:', element.tagName, element.id || element.className);
   }
 
   highlightTarget(element) {
+    // Remove previous highlights
     document.querySelectorAll('.speech-target').forEach(el => {
       el.classList.remove('speech-target');
     });
     
+    // Add highlight to current target
     element.classList.add('speech-target');
     
+    // Remove highlight after a short delay
     setTimeout(() => {
       element.classList.remove('speech-target');
     }, 2000);
@@ -1299,6 +1619,7 @@ class AdvancedSpeechWidget {
       return;
     }
 
+    // Auto-select target if none selected
     if (!this.currentTarget) {
       const target = this.findBestTarget();
       if (target) {
@@ -1309,10 +1630,18 @@ class AdvancedSpeechWidget {
       }
     }
 
+    this.isListening = true;
+    this.restartAttempts = 0;
+    this.startRecognition();
+  }
+
+  startRecognition() {
     try {
       this.recognition.start();
+      this.updateUI();
     } catch (error) {
       console.error('Failed to start recognition:', error);
+      this.isListening = false;
       this.showMessage('Failed to start speech recognition', 'error');
     }
   }
@@ -1320,25 +1649,42 @@ class AdvancedSpeechWidget {
   stopListening() {
     this.isListening = false;
     this.isPushToTalk = false;
+    this.restartAttempts = this.maxRestartAttempts; // Prevent auto-restart
     
     if (this.recognition) {
       this.recognition.stop();
     }
     
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+    
     this.updateUI();
+    console.log('Speech recognition stopped manually');
   }
 
   pauseForInactivity() {
-    this.stopListening();
+    if (this.recognition) {
+      this.recognition.stop();
+    }
+    
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      this.mediaRecorder.stop();
+    }
+    
+    this.isListening = false;
+    this.updateUI();
     this.showMessage('Paused due to inactivity. Click to resume.', 'info');
   }
 
   findBestTarget() {
+    // Prioritize focused element
     const focused = document.activeElement;
     if (this.isInputElement(focused)) {
       return focused;
     }
 
+    // Find first visible text input
     const inputs = document.querySelectorAll('textarea, input[type="text"]');
     for (const input of inputs) {
       const rect = input.getBoundingClientRect();
@@ -1354,25 +1700,30 @@ class AdvancedSpeechWidget {
     if (!this.currentTarget || !text.trim()) return;
     
     const target = this.currentTarget;
-    const cleanText = text.trim();
+    const cleanText = this.cleanText(text);
     
     try {
-      const start = target.selectionStart || 0;
-      const end = target.selectionEnd || start;
-      const before = target.value.substring(0, start);
-      const after = target.value.substring(end);
-      
-      // Smart spacing
-      const needsSpaceBefore = before.length > 0 && !before.endsWith(' ') && !cleanText.startsWith(' ') && !cleanText.match(/^[,.!?;:]/);
-      const textToInsert = (needsSpaceBefore ? ' ' : '') + cleanText;
-      
-      target.value = before + textToInsert + after;
-      
-      const newPosition = start + textToInsert.length;
-      target.setSelectionRange(newPosition, newPosition);
-      
-      this.triggerInputEvents(target);
-      this.flashTarget(target);
+      if (target.tagName.toLowerCase() === 'textarea' || target.tagName.toLowerCase() === 'input') {
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || start;
+        const before = target.value.substring(0, start);
+        const after = target.value.substring(end);
+        
+        // Smart spacing - add space if needed
+        const needsSpaceBefore = before.length > 0 && !before.endsWith(' ') && !cleanText.startsWith(' ') && !cleanText.match(/^[,.!?;:]/);
+        const textToInsert = (needsSpaceBefore ? ' ' : '') + cleanText;
+        
+        target.value = before + textToInsert + after;
+        
+        const newPosition = start + textToInsert.length;
+        target.setSelectionRange(newPosition, newPosition);
+        
+        // Trigger events for form validation
+        this.triggerInputEvents(target);
+        
+        // Visual feedback
+        this.flashTarget(target);
+      }
       
       target.focus();
       
@@ -1381,9 +1732,12 @@ class AdvancedSpeechWidget {
     }
   }
 
-  triggerInputEvents(target) {
-    target.dispatchEvent(new Event('input', { bubbles: true }));
-    target.dispatchEvent(new Event('change', { bubbles: true }));
+  cleanText(text) {
+    return text
+      .trim()
+      .replace(/\s+/g, ' ') // Normalize whitespace
+      .replace(/^(um|uh|er)\s+/i, '') // Remove filler words at start
+      .replace(/\s+(um|uh|er)(\s+|$)/gi, ' '); // Remove filler words elsewhere
   }
 
   flashTarget(element) {
@@ -1391,6 +1745,11 @@ class AdvancedSpeechWidget {
     setTimeout(() => {
       element.classList.remove('speech-insert');
     }, 300);
+  }
+
+  triggerInputEvents(target) {
+    target.dispatchEvent(new Event('input', { bubbles: true }));
+    target.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   updateLastActivity() {
@@ -1404,10 +1763,12 @@ class AdvancedSpeechWidget {
     if (button) {
       if (this.isListening) {
         button.classList.add('listening');
-        button.setAttribute('aria-label', 'Stop dictation');
+        button.setAttribute('aria-label', 'Stop dictation (Ctrl+Shift+V)');
+        button.title = 'Stop dictation (Ctrl+Shift+V or Escape)';
       } else {
         button.classList.remove('listening');
-        button.setAttribute('aria-label', 'Start dictation');
+        button.setAttribute('aria-label', 'Start dictation (Ctrl+Shift+V)');
+        button.title = 'Start continuous dictation (Ctrl+Shift+V)';
       }
     }
     
@@ -1420,16 +1781,19 @@ class AdvancedSpeechWidget {
     
     if (this.isListening) {
       if (this.interimTranscript) {
-        status.textContent = `"${this.interimTranscript}"`;
+        const sourceInfo = this.isWhisperLoaded && this.settings.hybridMode ? ' (AI Enhanced)' : '';
+        status.textContent = `"${this.interimTranscript}"${sourceInfo}`;
       } else {
-        status.textContent = 'Listening...';
+        const modeInfo = this.isWhisperLoaded && this.settings.hybridMode ? 'AI-Enhanced ' : '';
+        status.textContent = `${modeInfo}Listening...`;
       }
       status.classList.add('active');
     } else {
       if (this.settings.pushToTalk) {
         status.textContent = 'Hold Ctrl+Space to talk';
       } else {
-        status.textContent = 'Click to start dictation';
+        const enhancementInfo = this.isWhisperLoaded ? ' (AI Enhanced)' : '';
+        status.textContent = `Click to start dictation${enhancementInfo}`;
       }
       status.classList.remove('active');
     }
@@ -1480,7 +1844,9 @@ class AdvancedSpeechWidget {
     const filename = `speech-transcript-${timestamp}.txt`;
     
     const content = this.transcriptHistory.map(entry => {
-      return `[${new Date(entry.timestamp).toLocaleString()}] ${entry.text}`;
+      const sourceLabel = entry.source === 'hybrid' ? '[AI Enhanced]' : 
+                         entry.source === 'whisper' ? '[AI Only]' : '[Standard]';
+      return `[${new Date(entry.timestamp).toLocaleString()}] ${sourceLabel} ${entry.text}`;
     }).join('\n\n');
     
     const blob = new Blob([content], { type: 'text/plain' });
@@ -1520,7 +1886,10 @@ class AdvancedSpeechWidget {
     }
   }
 
-  // Public API methods
+  // ==============================
+  // PUBLIC API METHODS
+  // ==============================
+
   setLanguage(lang) {
     if (this.languages[lang]) {
       this.settings.language = lang;
@@ -1552,6 +1921,8 @@ class AdvancedSpeechWidget {
     return {
       isListening: this.isListening,
       language: this.settings.language,
+      hybridMode: this.settings.hybridMode,
+      whisperLoaded: this.isWhisperLoaded,
       currentTarget: this.currentTarget ? {
         tag: this.currentTarget.tagName,
         id: this.currentTarget.id,
@@ -1567,11 +1938,6 @@ class AdvancedSpeechWidget {
   destroy() {
     this.stopListening();
     
-    // Remove event listeners
-    document.removeEventListener('keydown', this.keydownHandler);
-    document.removeEventListener('keyup', this.keyupHandler);
-    document.removeEventListener('visibilitychange', this.visibilityHandler);
-    
     // Remove settings panel
     const panel = document.getElementById('speechSettings');
     if (panel) {
@@ -1580,7 +1946,11 @@ class AdvancedSpeechWidget {
   }
 }
 
-// Initialize the advanced speech widget
+// ==============================
+// INITIALIZATION
+// ==============================
+
+// Initialize the complete hybrid speech widget
 document.addEventListener('DOMContentLoaded', function() {
   if (window.advancedSpeechWidget) {
     console.log('Advanced speech widget already initialized');
@@ -1606,7 +1976,8 @@ document.addEventListener('DOMContentLoaded', function() {
       showSettings: () => window.advancedSpeechWidget.showSettings()
     };
     
-    console.log('🎤 Advanced Speech Widget initialized successfully!');
+    console.log('🎤 Complete Hybrid Speech Widget initialized successfully!');
+    console.log('🤖 AI enhancement will load automatically');
     console.log('💡 Voice Commands Available:');
     console.log('   • Punctuation: "comma", "period", "question mark", etc.');
     console.log('   • Navigation: "new line", "new paragraph", "tab"');
@@ -1620,6 +1991,6 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('🔧 Use speechControl object for programmatic control');
     
   } catch (error) {
-    console.error('Failed to initialize advanced speech widget:', error);
+    console.error('Failed to initialize hybrid speech widget:', error);
   }
 });
