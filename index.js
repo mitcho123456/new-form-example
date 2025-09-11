@@ -114,7 +114,7 @@ async function generateOutput() {
       
       // NEW: Natural language formatting for data-natural elements
       if (ctrl.dataset && ctrl.dataset.natural) {
-        lines.push(`${fieldLabel}: ${val.trim()}`);
+        lines.push(`${fieldLabel} ${val.trim()}`);
       }
       // Special handling for Expectations field - always use label format
       else if (ctrl.id === 'Expectations') {
@@ -124,7 +124,7 @@ async function generateOutput() {
       else if (ctrl.tagName.toLowerCase() === 'textarea' || ctrl.isContentEditable) {
         lines.push(capitalizeAndAddFullStop(val.trim()));
       } else {
-        lines.push(`${fieldLabel} - ${val.trim()}`);
+        lines.push(`${fieldLabel}  ${val.trim()}`);
       }
     });
     
