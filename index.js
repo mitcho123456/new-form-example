@@ -490,3 +490,251 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// ==============================
+// Speech Widget - Add this to the end of your index.js file
+// ==============================
+
+// Initialize speech widget when DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  initializeSpeechWidget();
+});
+
+function initializeSpeechWidget() {
+  let recognition = null;
+  let isListening = false;
+  let currentTarget = null;
+  let finalTranscript = '';
+
+  // Check browser support
+  const hasAPI = ('webkitSpeechRecognition' in window) || ('SpeechRecognition' in window);
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+
+  if (!hasAPI || !isSecure) {
+    console.warn('Speech recognition not supported');
+    const widget = document.getElementById('speechWidget');
+    if (widget) widget.style.display = 'none';
+    return;
+  }
+
+  // Setup speech recognition
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+
+  // Speech recognition events
+  recognition.onstart = function() {
+    console.log('Speech recognition started');
+    isListening = true;
+    updateWidgetState(true);
+    finalTranscript = '';
+  };
+
+  recognition.onend = function() {
+    console.log('Speech recognition ended');
+    isListening = false;
+    updateWidgetState(false);
+    
+    if (finalTranscript.trim()) {
+      insertText(finalTranscript.trim());
+    }
+  };
+
+  recognition.onerror = function(event) {
+    console.error('Speech recognition error:', event.error);
+    isListening = false;
+    updateWidgetState(false);
+    
+    if (event.error === 'not-allowed') {
+      alert('Microphone access denied. Please allow microphone access and try again.');
+    } else if (event.error === 'no-speech') {
+      updateStatusText('No speech detected - try again');
+    }
+  };
+
+  recognition.onresult = function(event) {
+    let interimTranscript = '';
+    let newFinalTranscript = '';
+    
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const transcript = event.results[i][0].transcript;
+      
+      if (event.results[i].isFinal) {
+        newFinalTranscript += transcript;
+      } else {
+        interimTranscript += transcript;
+      }
+    }
+    
+    if (newFinalTranscript) {
+      finalTranscript += newFinalTranscript + ' ';
+    }
+    
+    const fullText = finalTranscript + interimTranscript;
+    if (fullText.trim()) {
+      updateStatusText('Heard: "' + fullText.trim() + '"');
+    }
+  };
+
+  // Button click handler
+  const button = document.getElementById('speechBtn');
+  if (button) {
+    button.addEventListener('click', function(e) {
+      e.preventDefault();
+      toggleListening();
+    });
+  }
+
+  // Input tracking
+  document.addEventListener('focusin', function(e) {
+    if (isInputElement(e.target)) {
+      currentTarget = e.target;
+      finalTranscript = '';
+    }
+  });
+
+  document.addEventListener('click', function(e) {
+    if (isInputElement(e.target)) {
+      currentTarget = e.target;
+      finalTranscript = '';
+    }
+  });
+
+  function isInputElement(element) {
+    if (!element) return false;
+    
+    const tagName = element.tagName.toLowerCase();
+    const type = element.type ? element.type.toLowerCase() : '';
+    
+    return (
+      tagName === 'textarea' ||
+      (tagName === 'input' && ['text', 'search', 'tel', 'url', 'email', 'number'].includes(type)) ||
+      element.contentEditable === 'true'
+    );
+  }
+
+  function toggleListening() {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
+  }
+
+  function startListening() {
+    if (!recognition) {
+      alert('Speech recognition is not available');
+      return;
+    }
+
+    // Auto-focus on first available input if none selected
+    if (!currentTarget) {
+      const firstInput = document.querySelector('textarea, input[type="text"]');
+      if (firstInput) {
+        firstInput.focus();
+        currentTarget = firstInput;
+      } else {
+        alert('Please click on a text field first, then start dictation');
+        return;
+      }
+    }
+
+    updateStatusText('Starting...');
+    
+    try {
+      recognition.start();
+    } catch (error) {
+      console.error('Failed to start speech recognition:', error);
+      alert('Failed to start speech recognition: ' + error.message);
+    }
+  }
+
+  function stopListening() {
+    isListening = false;
+    if (recognition) {
+      recognition.stop();
+    }
+    updateWidgetState(false);
+  }
+
+  function updateWidgetState(listening) {
+    const button = document.getElementById('speechBtn');
+    const status = document.getElementById('speechStatus');
+    
+    if (button) {
+      if (listening) {
+        button.classList.add('listening');
+        button.setAttribute('aria-label', 'Stop dictation');
+      } else {
+        button.classList.remove('listening');
+        button.setAttribute('aria-label', 'Start dictation');
+      }
+    }
+    
+    if (status) {
+      if (listening) {
+        status.textContent = 'Listening... Click to stop';
+        status.classList.add('active');
+      } else {
+        status.textContent = 'Click to start dictation';
+        status.classList.remove('active');
+      }
+    }
+  }
+
+  function updateStatusText(text) {
+    const status = document.getElementById('speechStatus');
+    if (status) {
+      status.textContent = text;
+    }
+  }
+
+  function insertText(text) {
+    if (!currentTarget || !text.trim()) return;
+    
+    const target = currentTarget;
+    const cleanText = text.trim();
+    
+    try {
+      if (target.tagName.toLowerCase() === 'textarea' || target.tagName.toLowerCase() === 'input') {
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || start;
+        const before = target.value.substring(0, start);
+        const after = target.value.substring(end);
+        
+        target.value = before + cleanText + after;
+        
+        const newPosition = start + cleanText.length;
+        target.setSelectionRange(newPosition, newPosition);
+        
+        target.dispatchEvent(new Event('input', { bubbles: true }));
+        target.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      
+      target.focus();
+      
+    } catch (error) {
+      console.error('Error inserting text:', error);
+    }
+  }
+
+  console.log('Speech widget initialized successfully');
+}
